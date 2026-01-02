@@ -17,7 +17,7 @@
 
     <nav class="bg-gray-900 text-white p-2 flex items-center justify-between shadow-md z-50 flex-shrink-0">
         <div class="flex items-center gap-4 px-4">
-            <span class="font-bold text-sm tracking-wider text-gray-400">FONDO APP</span>
+            <span class="font-bold text-sm tracking-wider text-gray-400">FONDO FAMIPARDO</span>
             <div class="h-4 w-px bg-gray-700"></div>
             <span id="current-view-name" class="text-sm font-medium text-white">Dashboard</span>
         </div>
@@ -65,9 +65,9 @@
                 content: 'Para ser admitido como nuevo asociado, es necesario pertenecer al grupo familiar de uno de los asociados activos.' 
             },
             { 
-                id: 'art13', article: 'ARTÍCULO 13', title: 'Fondo de Solidaridad', category: 'Ahorro',
+                id: 'art13', article: 'ARTÍCULO 13', title: ' de Solidaridad', category: 'Ahorro',
                 keywords: 'calamidad emergencia ayuda auxilio 10% diez por ciento donacion solidaridad',
-                content: 'El Fondo mantendrá una partida disponible para eventualidades (calamidad doméstica). Se destinará el 10% de las utilidades mensuales, y se dejará de hacer esta provisión cuando se alcance una suma de $1.000.000 en este rubro.' 
+                content: 'El  mantendrá una partida disponible para eventualidades (calamidad doméstica). Se destinará el 10% de las utilidades mensuales, y se dejará de hacer esta provisión cuando se alcance una suma de $1.000.000 en este rubro.' 
             },
             { 
                 id: 'art14', article: 'ARTÍCULO 14', title: 'Cuota Mensual', category: 'Ahorro',
@@ -89,7 +89,7 @@
             { 
                 id: 'art9', article: 'ARTÍCULO 9', title: 'Plazo Devolución', category: 'Retiro',
                 keywords: 'cuando pagan demora tiempo entrega dinero plazo',
-                content: 'El plazo para la devolución de su capital se ajustará a la disponibilidad del fondo con prioridad uno.' 
+                content: 'El plazo para la devolución de su capital se ajustará a la disponibilidad del  con prioridad uno.' 
             },
             { 
                 id: 'art10', article: 'ARTÍCULO 10', title: 'Beneficiarios', category: 'Retiro',
@@ -302,7 +302,7 @@
                 <div class="h-full flex flex-col items-center justify-center bg-gray-50 p-6 relative overflow-hidden fade-in">
                     <div id="oracle-content" class="w-full max-w-2xl flex flex-col h-full justify-center">
                         <div id="oracle-hero" class="text-center space-y-8 mb-8">
-                            <div class="inline-flex p-3 bg-white rounded-2xl shadow-sm border border-gray-100 mb-4"><span class="font-bold text-gray-800 text-xl">Fondo</span><span class="text-indigo-600 font-light text-xl ml-1">AI</span></div>
+                            <div class="inline-flex p-3 bg-white rounded-2xl shadow-sm border border-gray-100 mb-4"><span class="font-bold text-gray-800 text-xl">Fondo Famipardo</span></div>
                             <h1 class="text-4xl font-bold text-gray-900">Consulta tus Estatutos</h1>
                         </div>
                         <div id="oracle-messages" class="flex-1 overflow-y-auto no-scrollbar pb-4 space-y-4 hidden mb-4"></div>
@@ -405,7 +405,7 @@
                 <div class="h-full flex bg-white fade-in">
                     <div class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 flex-shrink-0">
                         <div class="p-6">
-                            <div class="font-bold text-white text-xl tracking-wider mb-8">ESTATUTOS.AI</div>
+                            <div class="font-bold text-white text-xl tracking-wider mb-8">ESTATUTOS</div>
                             <div class="space-y-1">${cats.map(c => `<button onclick="setCat('${c.id}')" class="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 transition-colors ${activeCat === c.id ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}"><i data-lucide="${c.icon}" width="16"></i> ${c.id}</button>`).join('')}</div>
                         </div>
                     </div>
@@ -426,3 +426,4 @@
     </script>
 </body>
 </html>
+
