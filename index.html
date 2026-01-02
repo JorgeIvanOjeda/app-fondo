@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Estatutos AI - Versión 0.7 (Navegación Mejorada)</title>
+    <title>Fondo Estatutos AI - Versión 0.7.1 (Corrección Semántica)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -27,7 +27,7 @@
     <main id="app-container" class="flex-1 overflow-hidden relative bg-gray-50"></main>
 
     <script>
-        // --- 1. BASE DE CONOCIMIENTO (V5.0) ---
+        // --- 1. BASE DE CONOCIMIENTO (V5.0 - CORREGIDA PARA SOCIOS/INGRESOS) ---
         const statutesDatabase = [
             // CAPÍTULO I
             { 
@@ -53,13 +53,15 @@
                 content: 'El capital del Fondo se constituirá de la siguiente manera: a) A través de los aportes obligatorios de los asociados. b) Mediante las utilidades y cualquier ingreso acumulado por las actividades realizadas.' 
             },
             { 
+                // CORRECCIÓN AQUÍ: Se agregaron palabras clave para conectar "ingreso" y "socios" con este artículo
                 id: 'art5', article: 'ARTÍCULO 5', title: 'Ingreso Nuevo Asociado', category: 'Ingreso',
-                keywords: 'entrar nuevo afiliacion costo cuanto vale requisitos inscripcion miembros integrantes unirse personas',
+                keywords: 'entrar nuevo afiliacion costo cuanto vale requisitos inscripcion miembros integrantes unirse personas socio socios ingresos entrada admision',
                 content: 'Para ingresar se requiere: 1. El pago de una cuota de admisión equivalente a dos veces el valor del aporte obligatorio. Esta cuota es independiente y no incluye el pago de la cuota mensual. 2. El nuevo asociado no tendrá derecho a las utilidades acumuladas hasta la fecha de su ingreso.' 
             },
             { 
+                // CORRECCIÓN AQUÍ: Se agregaron palabras clave "socio" y "socios"
                 id: 'art6', article: 'ARTÍCULO 6', title: 'Requisito Familiar', category: 'Ingreso',
-                keywords: 'familia pariente parentesco quien puede entrar familiar',
+                keywords: 'familia pariente parentesco quien puede entrar familiar socio socios',
                 content: 'Para ser admitido como nuevo asociado, es necesario pertenecer al grupo familiar de uno de los asociados activos.' 
             },
             { 
@@ -179,7 +181,7 @@
         function searchEngine(query) {
             if (!query) return [];
             
-            const stopWords = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'y', 'o', 'a', 'en', 'que', 'es', 'por', 'para', 'con', 'sus', 'como', 'cual', 'quien', 'son', 'cuales', 'los']);
+            const stopWords = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'y', 'o', 'a', 'en', 'que', 'es', 'por', 'para', 'con', 'sus', 'como', 'cual', 'quien', 'son', 'cuales', 'los', 'mis', 'sus']);
             const queryLower = normalizeText(query);
             
             const rawTerms = queryLower.split(/[^a-z0-9]+/);
@@ -252,7 +254,7 @@
             renderView();
         }
 
-        // --- FUNCIÓN NUEVA: NAVEGAR A CATEGORÍA ESPECÍFICA ---
+        // --- FUNCIÓN DE NAVEGACIÓN DIRECTA (Incluida en V0.7) ---
         function navigateToCategory(category) {
             activeCat = category; // Establece la categoría global
             switchView('navigator'); // Cambia a la vista de Navegador
