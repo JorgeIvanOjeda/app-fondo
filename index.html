@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V5.6 (Gemini 2.5)</title>
+    <title>Fondo Famipardo - V5.9 (Final)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -46,7 +46,6 @@
     <div id="bottom-nav" class="hidden h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 flex-shrink-0 z-50"></div>
 
     <script>
-        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDLxG35sVR6zs8yyrkNL4mOVQMuGeavM9U",
             authDomain: "fondo-famipardo.firebaseapp.com",
@@ -60,9 +59,9 @@
         const db = firebase.firestore();
 
         // =================================================================
-        // ⚠️ PEGA TU API KEY AQUÍ ⚠️
+        // ⚠️ PEGA TU API KEY NUEVA AQUÍ ⚠️
         // =================================================================
-        const GEMINI_API_KEY = "AIzaSyApnNYASEXqPAfZKFCyDMhYbRc00QEhdEU"; 
+        const GEMINI_API_KEY = "AIzaSyALhsS1rL2wcCQeiGF175b54bEv1X6B88c"; 
 
         const initialUsers = [
             { id: '1010', name: 'Juan Perez', aportes: 2000000, deuda: 500000, multas: 0 },
@@ -208,41 +207,65 @@
             lucide.createIcons();
         };
 
+        // CEREBRO GEMINI ACTUALIZADO (2026)
         async function generateAIResponse(query) {
-            if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
-                console.log("Intentando conectar con IA...");
-                try {
-                    const contextData = `
-                        DATOS DEL USUARIO:
-                        - Nombre: ${currentUser.name}
-                        - Aportes: ${f(currentUser.aportes)}
-                        - Deuda: ${f(currentUser.deuda)}
-                        - Cupo Disponible para pedir: ${f(currentUser.aportes - currentUser.deuda)}
-                        
-                        REGLAS DEL FONDO:
-                        ${statutesDatabase.map(s => s.content).join(" ")}
-                    `;
+            let aiResult = null;
 
-                    const prompt = `Actúa como asesor experto del Fondo Famipardo. Responde brevemente basándote SOLO en estos datos: ${contextData}. Pregunta: "${query}"`;
-                    
-                    // ACTUALIZACIÓN CRÍTICA: USAMOS EL MODELO 2.5 FLASH
-                    let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-                    
-                    let r = await fetch(url, {
+            if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
+                const contextData = `
+                    DATOS USUARIO:
+                    - Nombre: ${currentUser.name}
+                    - Aportes: ${f(currentUser.aportes)}
+                    - Deuda: ${f(currentUser.deuda)}
+                    - Cupo Disponible: ${f(currentUser.aportes - currentUser.deuda)}
+                    ESTATUTOS:
+                    ${statutesDatabase.map(s => s.content).join(" ")}
+                `;
+                const prompt = `Como experto del Fondo Famipardo, usa estos datos: ${contextData}. Responde a: "${query}". (Si es cálculo de préstamo, resta deuda a aportes).`;
+
+                // 1. INTENTO CON GEMINI 2.5 FLASH PREVIEW (El mejor)
+                try {
+                    console.log("Intentando Gemini 2.5...");
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
-                    
                     const d = await r.json();
-                    if (d.candidates) return { text: d.candidates[0].content.parts[0].text, citations: ['IA 2.5'] };
-                    else console.error("Error API:", d);
-                } catch (e) { console.error("Error IA:", e); }
+                    
+                    if (d.error) {
+                         console.error("Fallo Gemini 2.5:", d.error.message);
+                    } else if (d.candidates) {
+                        aiResult = { text: d.candidates[0].content.parts[0].text, citations: ['Gemini 2.5'] };
+                    }
+                } catch (e) { console.error("Fallo Red 2.5"); }
+
+                // 2. FALLBACK A GEMINI 2.0 FLASH EXP (Si el primero falla)
+                if (!aiResult) {
+                    try {
+                        console.log("Intentando Gemini 2.0...");
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+                        const d = await r.json();
+                        if (d.candidates) aiResult = { text: d.candidates[0].content.parts[0].text, citations: ['Gemini 2.0'] };
+                    } catch (e) { console.error("Fallo Red 2.0"); }
+                }
             }
 
-            // FALLBACK FINAL
+            if (aiResult) return aiResult;
+
+            // FALLBACK FINAL: BUSCADOR LOCAL
+            console.log("Usando Fallback Local...");
+            const qClean = normalizeText(query);
+            if (qClean.includes('prestamo') || qClean.includes('cupo') || qClean.includes('pedir')) {
+                const cupo = currentUser.aportes - currentUser.deuda;
+                return { text: `💰 **Cupo Disponible (Modo Local)**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Tus aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`, citations: ['Cálculo Local'] };
+            }
             const results = searchStatutes(query);
             if (results.length > 0) return { text: `• Según **${results[0].article}**: "${results[0].content}"`, citations: [results[0].title] };
-            return { text: "No encontré esa información en los estatutos.", citations: [] };
+            
+            return { text: "No pude conectar con la IA y no encontré información local exacta. Intenta reformular.", citations: [] };
         }
 
         function searchStatutes(query) {
