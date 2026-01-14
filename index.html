@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - Diagnóstico V5.2</title>
+    <title>Fondo Famipardo - V5.6 (Gemini 2.5)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -14,7 +14,6 @@
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .chat-content strong { font-weight: 700; color: #312e81; }
         .thinking-dot { animation: bounce 1.4s infinite ease-in-out both; width: 6px; height: 6px; background-color: #6366f1; border-radius: 50%; display: inline-block; margin: 0 1px; }
         .thinking-dot:nth-child(1) { animation-delay: -0.32s; }
@@ -47,6 +46,7 @@
     <div id="bottom-nav" class="hidden h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 flex-shrink-0 z-50"></div>
 
     <script>
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDLxG35sVR6zs8yyrkNL4mOVQMuGeavM9U",
             authDomain: "fondo-famipardo.firebaseapp.com",
@@ -59,6 +59,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // =================================================================
+        // ⚠️ PEGA TU API KEY AQUÍ ⚠️
+        // =================================================================
         const GEMINI_API_KEY = "AIzaSyApnNYASEXqPAfZKFCyDMhYbRc00QEhdEU"; 
 
         const initialUsers = [
@@ -73,26 +76,15 @@
             { id: 'art3', article: 'ARTÍCULO 3', title: 'Duración', category: 'General', keywords: 'tiempo fin acabar cerrar', content: 'La duración del Fondo será indefinida. Podrá disolverse en cualquier momento si así lo deciden los asociados mediante voluntad escrita o por decisión en Asamblea General.' },
             { id: 'art4', article: 'ARTÍCULO 4', title: 'Capital', category: 'Ahorro', keywords: 'dinero plata recursos fondos utilidades', content: 'El capital se constituirá de: a) Aportes obligatorios de los asociados. b) Utilidades y cualquier ingreso acumulado.' },
             { id: 'art5', article: 'ARTÍCULO 5', title: 'Ingreso Nuevo Asociado', category: 'Ingreso', keywords: 'entrar nuevo afiliacion costo requisitos socio socios ingresos', content: 'Para ingresar se requiere: 1. Pago de cuota de admisión (dos veces el valor del aporte obligatorio). 2. El nuevo asociado no tendrá derecho a utilidades acumuladas hasta la fecha de su ingreso.' },
-            { id: 'art6', article: 'ARTÍCULO 6', title: 'Requisito Familiar', category: 'Ingreso', keywords: 'familia pariente parentesco socio socios', content: 'Para ser admitido como nuevo asociado, es necesario pertenecer al grupo familiar de uno de los asociados activos.' },
             { id: 'art13', article: 'ARTÍCULO 13', title: 'Fondo de Solidaridad', category: 'Ahorro', keywords: 'calamidad emergencia ayuda auxilio', content: 'Se destinará el 10% de las utilidades mensuales para eventualidades (calamidad doméstica) hasta alcanzar $1.000.000.' },
             { id: 'art14', article: 'ARTÍCULO 14', title: 'Cuota Mensual', category: 'Ahorro', keywords: 'mensualidad cuanto pagar aporte', content: 'El aporte mensual será establecido en la asamblea ordinaria.' },
             { id: 'art7', article: 'ARTÍCULO 7', title: 'Retiro', category: 'Retiro', keywords: 'salir renunciar irse devolucion dinero', content: 'Al retirarse, un asociado tendrá derecho a la devolución de sus aportes y utilidades a la fecha del balance del mes anterior, previo cruce de cuentas.' },
-            { id: 'art8', article: 'ARTÍCULO 8', title: 'Devolución', category: 'Retiro', keywords: 'devolver plata saldo deuda', content: 'Cuando un asociado se retire se le devolverán sus aportes y utilidades. El saldo pendiente pasará directamente al codeudor solidario.' },
             { id: 'art9', article: 'ARTÍCULO 9', title: 'Plazo Devolución', category: 'Retiro', keywords: 'cuando pagan demora tiempo', content: 'El plazo para la devolución de su capital se ajustará a la disponibilidad del fondo con prioridad uno.' },
-            { id: 'art10', article: 'ARTÍCULO 10', title: 'Beneficiarios', category: 'Retiro', keywords: 'muerte fallecimiento herederos', content: 'Todo asociado deberá relacionar a sus beneficiarios con sus respectivos porcentajes para la devolución del saldo.' },
             { id: 'art11', article: 'ARTÍCULO 11', title: 'Derechos', category: 'Legal', keywords: 'puedo hacer beneficios votar voz', content: 'Son derechos: a) Disfrutar de servicios y beneficios. b) Deliberar en asambleas. c) Fiscalizar cumplimiento de estatutos. d) Participar en administración.' },
             { id: 'art12', article: 'ARTÍCULO 12', title: 'Obligaciones', category: 'Legal', keywords: 'deberes reglas cumplir pagar', content: 'Son obligaciones: a) Cumplir puntualmente pagos. b) Acatar estatutos. c) Desempeñar cargos elegidos. d) Cumplir obligaciones financieras.' },
-            { id: 'art15', article: 'ARTÍCULO 15', title: 'Reglamento de Préstamos', category: 'Préstamos', keywords: 'credito plata prestar interes tasa cuanto prestan gravamen 4x1000 nuevo credito prestamo cupo', content: 'Los socios dispondrán de un cupo de crédito de hasta el 100% de sus aportes a la fecha de la solicitud, con un interés del 0.5% mensual, y del 0.8% si el crédito presenta mora. Si un socio solicita un nuevo crédito, se le prestará hasta el 100% del cupo de endeudamiento, el cual se consolidará con la deuda actual a un interés del 0.8% hasta su cancelación. A particulares se les prestará hasta 5 SMLV a un interés del 2% mensual, presentando las garantías necesarias para su respaldo (letra y codeudor del Fondo con cupo). PARAGRAFO: El acreedor del préstamo deberá asumir el gravamen financiero cobrado por la entidad bancaria, el cual será pagado en la primera cuota.' },
+            { id: 'art15', article: 'ARTÍCULO 15', title: 'Reglamento de Préstamos', category: 'Préstamos', keywords: 'credito plata prestar interes tasa cuanto prestan gravamen 4x1000 nuevo credito prestamo cupo', content: 'Los socios dispondrán de un cupo de crédito de hasta el 100% de sus aportes. Interés 0.5% mensual. Si hay mora es 0.8%. Se puede solicitar nuevo crédito recogiendo el anterior.' },
             { id: 'art16', article: 'ARTÍCULO 16', title: 'Sanciones', category: 'Sanciones', keywords: 'multa multas castigo penalidad inasistencia orden pago prelacion prioridad distribucion', content: 'Se multará con el valor de la cuota de afiliación al asociado que no asista a las reuniones. PARAGRAFO: Todo pago y distribución de excedentes se aplicará primero a sanciones, luego a intereses, después a deuda, y por último al ahorro.' },
-            { id: 'art17', article: 'ARTÍCULO 17', title: 'Quórum', category: 'Gobierno', keywords: 'asistentes cuantos mitad uno', content: 'El quórum requerido para la validez de las deliberaciones de la Asamblea General es la mitad más uno (1) de los asociados.' },
-            { id: 'art18', article: 'ARTÍCULO 18', title: 'Actas', category: 'Gobierno', keywords: 'registro libro firma', content: 'Las deliberaciones de la asamblea general se harán constar en el libro de actas, las cuales firman el presidente y la secretaria.' },
-            { id: 'art19', article: 'ARTÍCULO 19', title: 'Atribuciones Asamblea', category: 'Gobierno', keywords: 'funciones poder reformar elegir', content: 'Son atribuciones: a) Disolver el Fondo. b) Reformar estatutos. c) Aprobar estados financieros. d) Elegir Junta Directiva por periodos anuales. PARAGRAFO: Cada dos periodos se debe renovar el 50% de la misma.' },
-            { id: 'art20', article: 'ARTÍCULO 20', title: 'Junta Directiva', category: 'Gobierno', keywords: 'conformacion directiva quienes son', content: 'La Junta Directiva estará compuesta por un(a) presidente, un(a) tesorero(a) y un(a) secretario(a).' },
-            { id: 'art21', article: 'ARTÍCULO 21', title: 'Reuniones Junta', category: 'Gobierno', keywords: 'cuando reunen sesion', content: 'La junta directiva se reunirá en sesiones ordinarias y extraordinarias tantas veces como sean necesarias. Se reunirá media hora antes de la Asamblea General.' },
-            { id: 'func_junta', article: 'FUNCIONES', title: 'Junta Directiva', category: 'Gobierno', keywords: 'que hacen atribuciones tareas', content: 'Funciones: Presentar a la Asamblea el balance y un informe de gestión. Aprobar o negar los préstamos solicitados. Convocar a la Asamblea General a sesiones extraordinarias.' },
-            { id: 'rol_presi', article: 'ROL', title: 'Presidente', category: 'Gobierno', keywords: 'encargado funciones tareas cabeza lider', content: 'Funciones del Presidente: Presidir todas las reuniones de asamblea y junta directiva. Presentar Informe de Gestión ante la Asamblea. Establecer el orden del día para las reuniones.' },
-            { id: 'rol_secr', article: 'ROL', title: 'Secretario', category: 'Gobierno', keywords: 'encargado funciones tareas actas archivo', content: 'Funciones del Secretario: Organizar archivo, llevar libros de actas, colaborar con la junta.' },
-            { id: 'rol_teso', article: 'ROL', title: 'Tesorero', category: 'Gobierno', keywords: 'encargado funciones tareas plata cuentas banco', content: 'Funciones del Tesorero: A. Atender el movimiento de las cuentas del fondo, percibiendo todos ingresos y efectuando los pagos a que haya lugar. B. Elaborar los informes financieros mensualmente.' }
+            { id: 'art20', article: 'ARTÍCULO 20', title: 'Junta Directiva', category: 'Gobierno', keywords: 'conformacion directiva quienes son', content: 'La Junta Directiva estará compuesta por un(a) presidente, un(a) tesorero(a) y un(a) secretario(a).' }
         ];
 
         let currentUser = null;
@@ -217,68 +209,50 @@
         };
 
         async function generateAIResponse(query) {
-            const qClean = normalizeText(query);
-            
-            // 1. FINANCIERO (LOCAL - REPARADO)
-            if (currentUser) {
-                if (qClean.includes('multa') || qClean.includes('sancion')) {
-                    if (qClean.includes('tengo') || qClean.includes('mis') || qClean.includes('debo')) return currentUser.multas > 0 ? { text: `⚠️ **Sí, tienes una multa.**\n\nValor: **$${f(currentUser.multas)}**.`, citations: ['Estado de Cuenta'] } : { text: `✅ **Estás al día.**`, citations: ['Estado de Cuenta'] };
-                }
-                if (qClean.includes('deuda') || qClean.includes('debo')) {
-                    if (currentUser.deuda === 0) return { text: "✅ **Estás libre de deudas.**", citations: ['Tu Perfil'] };
-                    const i = currentUser.deuda * 0.005;
-                    return { text: `📉 **Deuda Actual**\n\nCapital: **$${f(currentUser.deuda)}**.\nIntereses (0.5%): **$${f(i)}**.\nTotal: **$${f(currentUser.deuda + i)}**.`, citations: ['Estado de Cuenta'] };
-                }
-                // LOGICA DE PRESTAMO CORREGIDA
-                if (qClean.includes('solicitar') || qClean.includes('pedir') || qClean.includes('prestamo')) {
-                    const cupoDisp = (currentUser.aportes * 1) - currentUser.deuda;
-                    const monto = parseAmount(query);
-                    if (monto > 0) {
-                        return monto <= cupoDisp ? { text: `✅ **Sí es posible.**\n\nTu cupo es **$${f(cupoDisp)}** y pides **$${f(monto)}**.`, citations: ['Cálculo Cupo'] } : { text: `❌ **No es posible.**\n\nTu cupo máximo es **$${f(cupoDisp)}**.`, citations: ['Cupo Excedido'] };
-                    }
-                    // Si no dice monto, decirle cuánto puede pedir
-                    return { text: `💰 **Cupo Disponible**\n\nPuedes solicitar hasta **$${f(cupoDisp)}** (100% aportes - deuda).`, citations: ['Cálculo Cupo'] };
-                }
-                if (qClean.includes('aporte') || qClean.includes('ahorro')) return { text: `💰 **Tus Aportes**\n\nTotal: **$${f(currentUser.aportes)}**.`, citations: ['Estado de Cuenta'] };
-            }
-
-            // 2. IA (GEMINI) - CON DIAGNÓSTICO EN CONSOLA
             if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
-                console.log("Intentando conectar con Gemini...");
+                console.log("Intentando conectar con IA...");
                 try {
-                    const prompt = `Eres un asistente del Fondo Famipardo. Responde SOLO basándote en: ${statutesDatabase.map(s => s.content).join(" ")}. Pregunta: ${query}`;
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                    const d = await r.json();
+                    const contextData = `
+                        DATOS DEL USUARIO:
+                        - Nombre: ${currentUser.name}
+                        - Aportes: ${f(currentUser.aportes)}
+                        - Deuda: ${f(currentUser.deuda)}
+                        - Cupo Disponible para pedir: ${f(currentUser.aportes - currentUser.deuda)}
+                        
+                        REGLAS DEL FONDO:
+                        ${statutesDatabase.map(s => s.content).join(" ")}
+                    `;
+
+                    const prompt = `Actúa como asesor experto del Fondo Famipardo. Responde brevemente basándote SOLO en estos datos: ${contextData}. Pregunta: "${query}"`;
                     
-                    if (d.error) {
-                        console.error("Error de Gemini (API):", d.error);
-                    } else if (d.candidates) {
-                        console.log("Gemini respondió correctamente.");
-                        return { text: d.candidates[0].content.parts[0].text, citations: ['Gemini AI'] };
-                    }
-                } catch (e) { console.error("Error de Red Gemini:", e); }
-            } else {
-                console.log("Gemini saltado: No hay API Key o es muy corta.");
+                    // ACTUALIZACIÓN CRÍTICA: USAMOS EL MODELO 2.5 FLASH
+                    let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                    
+                    let r = await fetch(url, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    
+                    const d = await r.json();
+                    if (d.candidates) return { text: d.candidates[0].content.parts[0].text, citations: ['IA 2.5'] };
+                    else console.error("Error API:", d);
+                } catch (e) { console.error("Error IA:", e); }
             }
 
-            // 3. FALLBACK LOCAL (BUSCADOR CORREGIDO PARA NUMEROS)
-            console.log("Usando búsqueda local...");
+            // FALLBACK FINAL
             const results = searchStatutes(query);
             if (results.length > 0) return { text: `• Según **${results[0].article}**: "${results[0].content}"`, citations: [results[0].title] };
-            return { text: "No encontré información exacta en los estatutos.", citations: [] };
+            return { text: "No encontré esa información en los estatutos.", citations: [] };
         }
 
         function searchStatutes(query) {
             const q = normalizeText(query);
-            // CORRECCIÓN: Permitimos palabras de 1 letra si son números
             const terms = q.split(' ').filter(t => t.length > 2 || !isNaN(t)); 
-
             const results = statutesDatabase.map(i => {
                 let score = 0;
                 const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
                 terms.forEach(t => { 
                     if (text.includes(t)) score += 10;
-                    // Prioridad a números de artículos exactos
                     if (normalizeText(i.article).endsWith(t)) score += 50; 
                 });
                 return { item: i, score };
