@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Estatutos AI - Versión 0.7.2 (Corrección Nombres APP)</title>
+    <title>Fondo Famipardo - Cloud V3.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .chat-content strong { font-weight: 700; color: #312e81; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -19,412 +22,168 @@
         <div class="flex items-center gap-4 px-4">
             <span class="font-bold text-sm tracking-wider text-gray-400">FONDO FAMIPARDO</span>
             <div class="h-4 w-px bg-gray-700"></div>
-            <span id="current-view-name" class="text-sm font-medium text-white">Dashboard</span>
+            <span id="current-view-name" class="text-sm font-medium text-white">Cargando...</span>
         </div>
-        <div class="flex gap-2 overflow-x-auto no-scrollbar" id="nav-buttons"></div>
+        <div class="flex gap-2 items-center overflow-x-auto no-scrollbar" id="nav-buttons"></div>
     </nav>
 
-    <main id="app-container" class="flex-1 overflow-hidden relative bg-gray-50"></main>
+    <main id="app-container" class="flex-1 overflow-hidden relative bg-gray-50 flex flex-col justify-center items-center">
+        <div class="text-center space-y-4">
+            <div class="animate-spin text-indigo-600"><i data-lucide="loader-2" width="40" height="40"></i></div>
+            <div class="text-indigo-600 font-bold animate-pulse">Conectando a la Nube...</div>
+        </div>
+    </main>
 
-    <script>
-        // --- 1. BASE DE CONOCIMIENTO (V5.0 - CORREGIDA PARA SOCIOS/INGRESOS) ---
-        const statutesDatabase = [
-            // CAPÍTULO I
-            { 
-                id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad y Objeto', category: 'General',
-                keywords: 'meta objetivo proposito fin constitucion crear fondo para que sirve',
-                content: 'El presente Fondo tiene como finalidad fomentar el hábito del ahorro, fortalecer los vínculos de solidaridad familiar y brindar apoyo a todos sus asociados, dentro de los recursos y capacidades disponibles.' 
-            },
-            { 
-                id: 'art2', article: 'ARTÍCULO 2', title: 'Domicilio', category: 'General',
-                keywords: 'ubicacion lugar ciudad bogota direccion donde queda',
-                content: 'El Fondo tendrá como domicilio la ciudad de Bogota D.C. y su creación rige a partir del 1 de octubre del 2001.' 
-            },
-            { 
-                id: 'art3', article: 'ARTÍCULO 3', title: 'Duración y Disolución', category: 'General',
-                keywords: 'tiempo fin acabar cerrar liquidar cuanto dura vigencia',
-                content: 'La duración del Fondo será indefinida, contando desde la fecha de aprobación de estos estatutos. Podrá disolverse en cualquier momento si así lo deciden los asociados mediante voluntad escrita o por decisión en Asamblea General (mayoría absoluta).' 
-            },
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-            // CAPÍTULO II
-            { 
-                id: 'art4', article: 'ARTÍCULO 4', title: 'Capital', category: 'Ahorro',
-                keywords: 'dinero plata recursos fondos utilidades de donde sale capitalizacion',
-                content: 'El capital del Fondo se constituirá de la siguiente manera: a) A través de los aportes obligatorios de los asociados. b) Mediante las utilidades y cualquier ingreso acumulado por las actividades realizadas.' 
-            },
-            { 
-                // CORRECCIÓN AQUÍ: Se agregaron palabras clave para conectar "ingreso" y "socios" con este artículo
-                id: 'art5', article: 'ARTÍCULO 5', title: 'Ingreso Nuevo Asociado', category: 'Ingreso',
-                keywords: 'entrar nuevo afiliacion costo cuanto vale requisitos inscripcion miembros integrantes unirse personas socio socios ingresos entrada admision',
-                content: 'Para ingresar se requiere: 1. El pago de una cuota de admisión equivalente a dos veces el valor del aporte obligatorio. Esta cuota es independiente y no incluye el pago de la cuota mensual. 2. El nuevo asociado no tendrá derecho a las utilidades acumuladas hasta la fecha de su ingreso.' 
-            },
-            { 
-                // CORRECCIÓN AQUÍ: Se agregaron palabras clave "socio" y "socios"
-                id: 'art6', article: 'ARTÍCULO 6', title: 'Requisito Familiar', category: 'Ingreso',
-                keywords: 'familia pariente parentesco quien puede entrar familiar socio socios',
-                content: 'Para ser admitido como nuevo asociado, es necesario pertenecer al grupo familiar de uno de los asociados activos.' 
-            },
-            { 
-                id: 'art13', article: 'ARTÍCULO 13', title: ' de Solidaridad', category: 'Ahorro',
-                keywords: 'calamidad emergencia ayuda auxilio 10% diez por ciento donacion solidaridad',
-                content: 'El  mantendrá una partida disponible para eventualidades (calamidad doméstica). Se destinará el 10% de las utilidades mensuales, y se dejará de hacer esta provisión cuando se alcance una suma de $1.000.000 en este rubro.' 
-            },
-            { 
-                id: 'art14', article: 'ARTÍCULO 14', title: 'Cuota Mensual', category: 'Ahorro',
-                keywords: 'mensualidad cuanto pagar aporte mes valor cuota',
-                content: 'El aporte mensual será establecido en la asamblea ordinaria.' 
-            },
+        // TU CONFIGURACIÓN DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLxG35sVR6zs8yyrkNL4mOVQMuGeavM9U",
+            authDomain: "-famipardo.firebaseapp.com",
+            projectId: "-famipardo",
+            storageBucket: "-famipardo.firebasestorage.app",
+            messagingSenderId: "839962195396",
+            appId: "1:839962195396:web:4e5a3e1448d55656672091",
+            measurementId: "G-GVVEB0V65Y"
+        };
 
-            // CAPÍTULO III
-            { 
-                id: 'art7', article: 'ARTÍCULO 7', title: 'Retiro y Cruce de Cuentas', category: 'Retiro',
-                keywords: 'salir renunciar irse devolucion dinero saldo cruce cuentas',
-                content: 'Al retirarse, un asociado tendrá derecho a la devolución de sus aportes y utilidades a la fecha del balance del mes anterior, previo cruce de cuentas. Si tiene saldo pendiente, este será transferido al codeudor solidario.' 
-            },
-            { 
-                id: 'art8', article: 'ARTÍCULO 8', title: 'Devolución de Aportes', category: 'Retiro',
-                keywords: 'devolver plata saldo deuda cuando pagan retorno',
-                content: 'Cuando un asociado se retire se le devolverán sus aportes y utilidades a la fecha del Balance del mes anterior una vez efectuado el cruce de cuentas. El saldo pendiente pasará directamente al codeudor solidario.' 
-            },
-            { 
-                id: 'art9', article: 'ARTÍCULO 9', title: 'Plazo Devolución', category: 'Retiro',
-                keywords: 'cuando pagan demora tiempo entrega dinero plazo',
-                content: 'El plazo para la devolución de su capital se ajustará a la disponibilidad del  con prioridad uno.' 
-            },
-            { 
-                id: 'art10', article: 'ARTÍCULO 10', title: 'Beneficiarios', category: 'Retiro',
-                keywords: 'muerte fallecimiento herederos recibir plata seguro vida',
-                content: 'Todo asociado deberá relacionar a sus beneficiarios con sus respectivos porcentajes para la devolución del saldo, una vez realizado el cruce de cuentas.' 
-            },
+        // INICIALIZAR FIREBASE
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-            // CAPÍTULO IV
-            { 
-                id: 'art11', article: 'ARTÍCULO 11', title: 'Derechos', category: 'Legal',
-                keywords: 'puedo hacer beneficios votar voz voto participar derecho',
-                content: 'Son derechos: a) Disfrutar de servicios y beneficios. b) Deliberar en asambleas. c) Fiscalizar cumplimiento de estatutos. d) Participar en administración. e) No tener derecho a utilidades de actividades en las que no haya participado.' 
-            },
-            { 
-                id: 'art12', article: 'ARTÍCULO 12', title: 'Obligaciones', category: 'Legal',
-                keywords: 'deberes reglas cumplir pagar responsabilidad obligacion',
-                content: 'Son obligaciones: a) Cumplir puntualmente pagos. b) Acatar estatutos. c) Desempeñar cargos elegidos. d) Cumplir obligaciones financieras. e) Presentar proyectos o iniciativas.' 
-            },
-
-            // CAPÍTULO V
-            { 
-                id: 'art15', article: 'ARTÍCULO 15', title: 'Reglamento de Préstamos', category: 'Préstamos',
-                keywords: 'credito plata prestar interes tasa cuanto prestan gravamen 4x1000 particular externo nuevo credito prestamo',
-                content: 'Los socios dispondrán de un cupo de crédito de hasta el 100% de sus aportes a la fecha de la solicitud, con un interés del 0.5% mensual, y del 0.8% si el crédito presenta mora. Si un socio solicita un nuevo crédito, se le prestará hasta el 100% del cupo de endeudamiento, el cual se consolidará con la deuda actual a un interés del 0.8% hasta su cancelación. A particulares se les prestará hasta 5 SMLV a un interés del 2% mensual, presentando las garantías necesarias para su respaldo (letra y codeudor del Fondo con cupo). PARAGRAFO: La concesión de créditos estará sujeta a la disponibilidad de recursos y a la verificación de las solicitudes de crédito de los asociados en cola. El acreedor del préstamo deberá asumir el gravamen financiero cobrado por la entidad bancaria, el cual será pagado en la primera cuota.' 
-            },
-
-            // CAPÍTULO VI
-            { 
-                id: 'art16', article: 'ARTÍCULO 16', title: 'Sanciones', category: 'Sanciones',
-                keywords: 'multa multas castigo penalidad inasistencia faltar reunion orden pago prelacion cobro sancion',
-                content: 'Se multará con el valor de la cuota de afiliación al asociado que no asista a las reuniones. PARAGRAFO: Todo pago y distribución de excedentes se aplicará primero a sanciones, luego a intereses, después a deuda, y por último al ahorro.' 
-            },
-
-            // CAPÍTULO VII
-            { 
-                id: 'art17', article: 'ARTÍCULO 17', title: 'Quórum', category: 'Gobierno',
-                keywords: 'asistentes cuantos mitad uno mayoria quorum',
-                content: 'El quórum requerido para la validez de las deliberaciones de la Asamblea General es la mitad más uno (1) de los asociados.' 
-            },
-            { 
-                id: 'art18', article: 'ARTÍCULO 18', title: 'Actas', category: 'Gobierno',
-                keywords: 'registro libro firma constancia papel documento acta',
-                content: 'Las deliberaciones de la asamblea general se harán constar en el libro de actas, las cuales firman el presidente y la secretaria.' 
-            },
-            { 
-                id: 'art19', article: 'ARTÍCULO 19', title: 'Atribuciones Asamblea', category: 'Gobierno',
-                keywords: 'funciones poder reformar elegir junta asamblea atribuciones',
-                content: 'Son atribuciones: a) Disolver el Fondo. b) Reformar estatutos. c) Aprobar estados financieros. d) Elegir Junta Directiva por periodos anuales. PARAGRAFO: Cada dos periodos se debe renovar el 50% de la misma.' 
-            },
-            { 
-                id: 'art20', article: 'ARTÍCULO 20', title: 'Junta Directiva', category: 'Gobierno',
-                keywords: 'conformacion directiva quienes son',
-                content: 'La Junta Directiva estará compuesta por un(a) presidente, un(a) tesorero(a) y un(a) secretario(a).' 
-            },
-            { 
-                id: 'art21', article: 'ARTÍCULO 21', title: 'Reuniones Junta', category: 'Gobierno',
-                keywords: 'cuando reunen sesion hora cita reunion',
-                content: 'La junta directiva se reunirá en sesiones ordinarias y extraordinarias tantas veces como sean necesarias. Se reunirá media hora antes de la Asamblea General.' 
-            },
-
-            // ROLES Y FUNCIONES
-            { 
-                id: 'func_junta', article: 'FUNCIONES', title: 'Junta Directiva', category: 'Gobierno',
-                keywords: 'que hacen atribuciones tareas funciones',
-                content: 'Funciones: Presentar a la Asamblea el balance y un informe de gestión. Aprobar o negar los préstamos solicitados. Convocar a la Asamblea General a sesiones extraordinarias.' 
-            },
-            { 
-                id: 'rol_presi', article: 'ROL', title: 'Presidente', category: 'Gobierno',
-                keywords: 'encargado funciones tareas cabeza lider orden dia presidente',
-                content: 'Funciones del Presidente: Presidir todas las reuniones de asamblea y junta directiva. Presentar Informe de Gestión ante la Asamblea. Establecer el orden del día para las reuniones.' 
-            },
-            { 
-                id: 'rol_secr', article: 'ROL', title: 'Secretario', category: 'Gobierno',
-                keywords: 'encargado funciones tareas actas archivo libros secretario',
-                content: 'Funciones del Secretario: A. Organizar el archivo del fondo en orden cronológico. B. Llevar los libros de actas de asamblea y junta directiva. C. Colaborar con todas aquellas funciones de la junta directiva que requieran su atención inmediata.' 
-            },
-            { 
-                id: 'rol_teso', article: 'ROL', title: 'Tesorero', category: 'Gobierno',
-                keywords: 'encargado funciones tareas plata cuentas banco informes financieros tesorero',
-                content: 'Funciones del Tesorero: A. Atender el movimiento de las cuentas del fondo, percibiendo todos ingresos y efectuando los pagos a que haya lugar. B. Elaborar los informes financieros mensualmente.' 
-            }
+        // DATOS INICIALES (Para subir a la nube la primera vez)
+        const initialUsers = [
+            { id: '1010', name: 'Juan Perez', aportes: 2000000, deuda: 500000, multas: 0 },
+            { id: '1020', name: 'Maria Rodriguez', aportes: 3500000, deuda: 0, multas: 50000 },
+            { id: '1030', name: 'Carlos Gomez', aportes: 1000000, deuda: 1200000, multas: 0 }
         ];
 
-        // --- 2. MOTOR DE BÚSQUEDA ---
-        function normalizeText(text) {
-            return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        // ESTATUTOS (Base de Conocimiento)
+        const statutesDatabase = [
+            { id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad', content: 'El presente  tiene como finalidad fomentar el hábito del ahorro y brindar apoyo a sus asociados.' },
+            { id: 'art4', article: 'ARTÍCULO 4', title: 'Capital', content: 'El capital se constituirá de: a) Aportes obligatorios de los asociados. b) Utilidades y cualquier ingreso acumulado.' },
+            { id: 'art15', article: 'ARTÍCULO 15', title: 'Préstamos', content: 'Cupo de crédito: 100% de los aportes. Interés 0.5% mensual (0.8% mora). Se pueden solicitar nuevos créditos consolidando la deuda.' },
+            { id: 'art16', article: 'ARTÍCULO 16', title: 'Sanciones', content: 'Se multará con el valor de la cuota de afiliación al asociado que no asista a las reuniones. Prelación de pagos: 1.Sanciones 2.Intereses 3.Deuda.' },
+            { id: 'art5', article: 'ARTÍCULO 5', title: 'Ingreso', content: 'Cuota de admisión: 2 veces el aporte obligatorio.' }
+        ];
+
+        // VARIABLES GLOBALES
+        let currentUser = null;
+        let currentView = 'login';
+        window.activeCat = 'General';
+
+        // UTILIDADES
+        const f = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
+        const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const parseAmount = (text) => {
+            const clean = text.toLowerCase().replace(/\./g, '').replace(/,/g, '');
+            let m = 1;
+            if (clean.includes('millon')) m = 1000000; else if (clean.includes('mil') || clean.includes('k')) m = 1000;
+            const match = clean.match(/(\d+)/);
+            return match ? parseInt(match[0]) * m : 0;
+        };
+
+        // --- LÓGICA DE FIREBASE (SEMBRADO Y LOGIN) ---
+        async function initSystem() {
+            try {
+                // Verificar conexión intentando leer un usuario
+                const testRef = doc(db, "socios", "1010");
+                const testSnap = await getDoc(testRef);
+
+                if (!testSnap.exists()) {
+                    console.log("Base de datos nueva. Subiendo usuarios...");
+                    for (const u of initialUsers) {
+                        await setDoc(doc(db, "socios", u.id), u);
+                    }
+                    console.log("Usuarios creados en la nube.");
+                }
+                renderLogin(document.getElementById('app-container'));
+                document.getElementById('current-view-name').textContent = "Login";
+            } catch (e) {
+                console.error(e);
+                alert("Error de conexión con Firebase. Revisa la consola.");
+            }
+        }
+
+        window.login = async function() {
+            const id = document.getElementById('login-id').value.trim();
+            if (!id) return;
+            
+            const btn = document.getElementById('login-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i>';
+            
+            try {
+                const docRef = doc(db, "socios", id);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    currentUser = docSnap.data();
+                    switchView('dashboard');
+                } else {
+                    alert("Usuario no encontrado en la nube. Prueba 1010.");
+                    btn.textContent = "Ingresar";
+                }
+            } catch (e) {
+                alert("Error al ingresar: " + e.message);
+                btn.textContent = "Ingresar";
+            }
+        };
+
+        window.logout = function() { currentUser = null; switchView('login'); };
+
+        // --- CEREBRO IA ---
+        function generateAIResponse(query) {
+            const qClean = normalizeText(query);
+
+            // 1. FINANCIERO
+            if (currentUser) {
+                // Multas
+                if (qClean.includes('multa') || qClean.includes('sancion')) {
+                    if (qClean.includes('tengo') || qClean.includes('mis') || qClean.includes('debo')) {
+                        return currentUser.multas > 0 
+                            ? { text: `⚠️ **Sí, tienes una multa.**\n\nValor pendiente: **$${f(currentUser.multas)}** (Dato de la Nube).`, citations: ['Estado de Cuenta'] }
+                            : { text: `✅ **Estás al día.**`, citations: ['Estado de Cuenta'] };
+                    }
+                }
+                // Deuda
+                if (qClean.includes('deuda') || qClean.includes('debo')) {
+                    if (currentUser.deuda === 0) return { text: "✅ **Estás libre de deudas.**", citations: ['Tu Perfil'] };
+                    const intereses = currentUser.deuda * 0.005;
+                    return { text: `📉 **Estado de tu Deuda**\n\nCapital: **$${f(currentUser.deuda)}**.\nIntereses (0.5%): **$${f(intereses)}**.\nTotal: **$${f(currentUser.deuda + intereses)}**.`, citations: ['Estado de Cuenta'] };
+                }
+                // Solicitud
+                if (qClean.includes('solicitar') || qClean.includes('pedir') || qClean.includes('prestamo')) {
+                    const cupoDisp = (currentUser.aportes * 1) - currentUser.deuda;
+                    const monto = parseAmount(query);
+                    if (monto > 0) {
+                        return monto <= cupoDisp 
+                            ? { text: `✅ **Sí es posible.**\n\nTu cupo es **$${f(cupoDisp)}** y pides **$${f(monto)}**.`, citations: ['Cálculo'] }
+                            : { text: `❌ **No es posible.**\n\nTu cupo máximo es **$${f(cupoDisp)}**.`, citations: ['Cupo Excedido'] };
+                    }
+                    return { text: `Tienes un cupo disponible de **$${f(cupoDisp)}**.`, citations: ['Estado de Cuenta'] };
+                }
+                // Capital
+                if (qClean.includes('aporte') || qClean.includes('capital') || qClean.includes('ahorro')) {
+                    return { text: `💰 **Tus Aportes**\n\nCapital ahorrado: **$${f(currentUser.aportes)}**.`, citations: ['Estado de Cuenta'] };
+                }
+            }
+
+            // 2. ESTATUTOS (Búsqueda mejorada con slice(0,1))
+            const results = searchEngine(query);
+            if (results.length > 0) {
+                const topMatches = results.slice(0, 1); // <--- TU CORRECCIÓN AQUÍ
+                const text = topMatches.map(m => `• Según **${m.article}** (${m.title}): "${m.content}"`).join('\n');
+                return { text: text, citations: topMatches.map(m => m.title) };
+            }
+
+            return { text: "No encontré esa información. Intenta preguntar por 'mis aportes' o 'artículo 15'.", citations: [] };
         }
 
         function searchEngine(query) {
             if (!query) return [];
-            
-            const stopWords = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'y', 'o', 'a', 'en', 'que', 'es', 'por', 'para', 'con', 'sus', 'como', 'cual', 'quien', 'son', 'cuales', 'los', 'mis', 'sus']);
-            const queryLower = normalizeText(query);
-            
-            const rawTerms = queryLower.split(/[^a-z0-9]+/);
-            const terms = rawTerms.filter(t => (t.length > 2 || !isNaN(t)) && !stopWords.has(t));
-
-            if (terms.length === 0) return [];
-
             const results = statutesDatabase.map(item => {
                 let score = 0;
-                const normTitle = normalizeText(item.title);
-                const normContent = normalizeText(item.content);
-                const normArticle = normalizeText(item.article);
-                const normKeywords = normalizeText(item.keywords || "");
-
-                terms.forEach(term => {
-                    if (!isNaN(term) && normArticle.includes(term)) score += 60; 
-                    else if (normTitle.includes(term)) score += 25;
-                    else if (normKeywords.includes(term)) score += 20;
-                    else if (normContent.includes(term)) score += 5;
-                });
-
-                return { item, score };
-            });
-
-            return results.filter(r => r.score > 0).sort((a, b) => b.score - a.score).map(r => r.item);
-        }
-
-        function generateAIResponse(query) {
-            const results = searchEngine(query);
-            
-            if (results.length === 0) {
-                return {
-                    text: "No encontré información exacta. Intenta con: 'nuevos asociados', 'multas' o 'artículo 15'.",
-                    citations: []
-                };
-            }
-            
-            const bestMatch = results[0];
-            return {
-                text: `Según **${bestMatch.article}** (${bestMatch.title}): "${bestMatch.content}"`,
-                citations: [bestMatch.title]
-            };
-        }
-
-        // --- 3. UI Y NAVEGACIÓN ---
-        const appContainer = document.getElementById('app-container');
-        let currentView = 'dashboard';
-
-        const views = [
-            { id: 'dashboard', name: 'Dashboard', icon: 'layout-grid' },
-            { id: 'oracle', name: 'Consultor AI', icon: 'message-square' },
-            { id: 'split', name: 'Documento', icon: 'columns' },
-            { id: 'navigator', name: 'Navegador', icon: 'list' }
-        ];
-
-        function initNavbar() {
-            const nav = document.getElementById('nav-buttons');
-            nav.innerHTML = views.map(v => `
-                <button onclick="switchView('${v.id}')" 
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${currentView === v.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}">
-                    <i data-lucide="${v.icon}" width="14"></i> <span class="hidden sm:inline">${v.name}</span>
-                </button>`).join('');
-            lucide.createIcons();
-        }
-
-        function switchView(id) {
-            currentView = id;
-            document.getElementById('current-view-name').textContent = views.find(v => v.id === id).name;
-            initNavbar();
-            renderView();
-        }
-
-        // --- FUNCIÓN DE NAVEGACIÓN DIRECTA (Incluida en V0.7) ---
-        function navigateToCategory(category) {
-            activeCat = category; // Establece la categoría global
-            switchView('navigator'); // Cambia a la vista de Navegador
-        }
-
-        function renderView() {
-            appContainer.innerHTML = '';
-            if (currentView === 'dashboard') renderDashboard();
-            else if (currentView === 'oracle') renderOracle();
-            else if (currentView === 'split') renderSplit();
-            else if (currentView === 'navigator') renderNavigator();
-            lucide.createIcons();
-        }
-
-        // RENDERIZADORES
-        function renderDashboard() {
-            appContainer.innerHTML = `
-                <div class="h-full bg-gray-50 overflow-y-auto fade-in">
-                    <div class="max-w-6xl mx-auto p-8">
-                        <header class="flex justify-between items-center mb-8">
-                            <div><h1 class="text-2xl font-bold text-gray-900">Portal del Asociado</h1><p class="text-gray-500">Resumen Ejecutivo 2025</p></div>
-                            <button onclick="switchView('oracle')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 flex gap-2"><i data-lucide="message-square" width="18"></i> Asistente IA</button>
-                        </header>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="md:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md cursor-pointer" onclick="navigateToCategory('Préstamos')">
-                                <div class="flex justify-between mb-4"><div class="p-2 bg-green-100 text-green-700 rounded-lg"><i data-lucide="credit-card"></i></div><span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">Art. 15</span></div>
-                                <h3 class="text-xl font-bold text-gray-900 mb-2">Créditos</h3>
-                                <div class="grid grid-cols-2 gap-4 mt-4">
-                                    <div class="bg-gray-50 p-3 rounded-lg"><div class="text-sm text-gray-500">Tasa Mensual</div><div class="text-lg font-bold text-indigo-600">0.5%</div></div>
-                                    <div class="bg-gray-50 p-3 rounded-lg"><div class="text-sm text-gray-500">Tasa Mora</div><div class="text-lg font-bold text-red-500">0.8%</div></div>
-                                </div>
-                            </div>
-                            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md cursor-pointer" onclick="navigateToCategory('Gobierno')">
-                                <div class="flex justify-between mb-4"><div class="p-2 bg-blue-100 text-blue-700 rounded-lg"><i data-lucide="users"></i></div><span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">Art. 20</span></div>
-                                <h3 class="text-lg font-bold text-gray-900 mb-2">Gobierno</h3>
-                                <ul class="text-sm text-gray-600 space-y-2"><li>• Presidente</li><li>• Tesorero</li><li>• Secretario</li></ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        function renderOracle() {
-            appContainer.innerHTML = `
-                <div class="h-full flex flex-col items-center justify-center bg-gray-50 p-6 relative overflow-hidden fade-in">
-                    <div id="oracle-content" class="w-full max-w-2xl flex flex-col h-full justify-center">
-                        <div id="oracle-hero" class="text-center space-y-8 mb-8">
-                            <div class="inline-flex p-3 bg-white rounded-2xl shadow-sm border border-gray-100 mb-4"><span class="font-bold text-gray-800 text-xl">Fondo Famipardo</span></div>
-                            <h1 class="text-4xl font-bold text-gray-900">Consulta tus Estatutos</h1>
-                        </div>
-                        <div id="oracle-messages" class="flex-1 overflow-y-auto no-scrollbar pb-4 space-y-4 hidden mb-4"></div>
-                        <div class="w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-2 relative z-10">
-                            <div class="relative">
-                                <input type="text" id="oracle-input" placeholder="Ej: ¿Requisitos nuevos miembros?" class="w-full pl-12 pr-12 py-4 text-gray-700 bg-transparent outline-none text-lg" onkeydown="if(event.key === 'Enter') handleSearch()">
-                                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                <button onclick="handleSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"><i data-lucide="arrow-right"></i></button>
-                            </div>
-                        </div>
-                        <div id="oracle-suggestions" class="flex flex-wrap justify-center gap-3 mt-8">
-                            ${['Nuevos miembros', 'Multas por inasistencia', 'Articulo 15'].map(q => `<button onclick="runSuggestion('${q}')" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-full text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all">${q}</button>`).join('')}
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        function runSuggestion(txt) { document.getElementById('oracle-input').value = txt; handleSearch(); }
-
-        function handleSearch() {
-            const input = document.getElementById('oracle-input');
-            const query = input.value.trim();
-            if (!query) return;
-
-            document.getElementById('oracle-hero').classList.add('hidden');
-            document.getElementById('oracle-suggestions').classList.add('hidden');
-            const msgs = document.getElementById('oracle-messages');
-            msgs.classList.remove('hidden');
-            document.getElementById('oracle-content').classList.remove('justify-center');
-
-            addMsg(msgs, 'user', query);
-            input.value = '';
-
-            setTimeout(() => {
-                const res = generateAIResponse(query);
-                addMsg(msgs, 'ai', res.text, res.citations);
-                msgs.scrollTop = msgs.scrollHeight;
-            }, 500);
-        }
-
-        function addMsg(container, role, text, citations = []) {
-            const isAi = role === 'ai';
-            const div = document.createElement('div');
-            div.className = `flex gap-4 mb-6 ${!isAi ? 'flex-row-reverse' : ''} fade-in`;
-            div.innerHTML = `
-                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isAi ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-600'}">
-                    <i data-lucide="${isAi ? 'sparkles' : 'user'}" width="16"></i>
-                </div>
-                <div class="max-w-[80%] space-y-2">
-                    <div class="p-4 rounded-2xl ${isAi ? 'bg-white border border-gray-100 shadow-sm text-gray-800' : 'bg-indigo-600 text-white'}">
-                        <p class="text-sm leading-relaxed">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
-                    </div>
-                    ${citations.length > 0 ? `<div class="flex gap-2 flex-wrap mt-2">${citations.map(c => `<span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">Ref: ${c}</span>`).join('')}</div>` : ''}
-                </div>`;
-            container.appendChild(div);
-            lucide.createIcons();
-        }
-
-        function renderSplit() {
-            appContainer.innerHTML = `
-                <div class="h-full flex flex-col bg-white fade-in">
-                    <div class="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0">
-                        <div class="flex items-center gap-2 font-semibold text-gray-700"><i data-lucide="file-text" class="text-indigo-600"></i><span>Estatutos.docx</span></div>
-                    </div>
-                    <div class="flex-1 flex overflow-hidden">
-                        <div class="flex-1 bg-gray-50 p-8 overflow-y-auto border-r border-gray-200">
-                            <div class="max-w-3xl mx-auto bg-white shadow-sm min-h-full p-12">
-                                <h2 class="text-2xl font-bold mb-6 text-gray-900 border-b pb-4">Documento Completo</h2>
-                                ${statutesDatabase.map(s => `<div class="mb-8 p-4 rounded-lg hover:bg-gray-50 transition-colors"><h3 class="font-bold text-gray-800 mb-2 text-sm uppercase flex justify-between">${s.article}: ${s.title}</h3><p class="text-gray-600 text-justify text-sm">${s.content}</p></div>`).join('')}
-                            </div>
-                        </div>
-                        <div class="w-[350px] flex flex-col bg-white border-l border-gray-200 shadow-xl z-10">
-                            <div id="split-msgs" class="flex-1 overflow-y-auto p-4 bg-white"></div>
-                            <div class="p-4 border-t border-gray-100 relative">
-                                <input type="text" id="split-input" placeholder="Preguntar..." class="w-full bg-gray-50 border border-gray-200 rounded-lg pl-4 pr-10 py-3 text-sm outline-none" onkeydown="if(event.key === 'Enter') handleSplit()">
-                                <button onclick="handleSplit()" class="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-600"><i data-lucide="send" width="18"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            addMsg(document.getElementById('split-msgs'), 'ai', 'Documento cargado.');
-        }
-
-        function handleSplit() {
-            const input = document.getElementById('split-input');
-            const q = input.value.trim();
-            if (!q) return;
-            const msgs = document.getElementById('split-msgs');
-            addMsg(msgs, 'user', q);
-            input.value = '';
-            setTimeout(() => { const res = generateAIResponse(q); addMsg(msgs, 'ai', res.text, res.citations); msgs.scrollTop = msgs.scrollHeight; }, 500);
-        }
-
-        let activeCat = 'General';
-        function renderNavigator() {
-            const filtered = statutesDatabase.filter(s => s.category === activeCat);
-            const cats = [{id:'General',icon:'book-open'},{id:'Ahorro',icon:'piggy-bank'},{id:'Ingreso',icon:'user-plus'},{id:'Retiro',icon:'log-out'},{id:'Préstamos',icon:'credit-card'},{id:'Legal',icon:'scale'},{id:'Sanciones',icon:'shield-alert'},{id:'Gobierno',icon:'users'}];
-            
-            appContainer.innerHTML = `
-                <div class="h-full flex bg-white fade-in">
-                    <div class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 flex-shrink-0">
-                        <div class="p-6">
-                            <div class="font-bold text-white text-xl tracking-wider mb-8">ESTATUTOS</div>
-                            <div class="space-y-1">${cats.map(c => `<button onclick="setCat('${c.id}')" class="w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 transition-colors ${activeCat === c.id ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}"><i data-lucide="${c.icon}" width="16"></i> ${c.id}</button>`).join('')}</div>
-                        </div>
-                    </div>
-                    <div class="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
-                        <div class="flex-1 overflow-y-auto p-8">
-                            <div class="max-w-3xl">
-                                <h1 class="text-3xl font-bold text-gray-900 mb-6">${activeCat}</h1>
-                                <div class="space-y-6">${filtered.map(s => `<div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100"><h3 class="text-gray-900 font-bold mb-2 flex items-center gap-2">${s.article}: ${s.title} ${s.id.startsWith('rol') ? '<span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">Rol</span>' : ''}</h3><p class="text-gray-600">${s.content}</p></div>`).join('')}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            lucide.createIcons();
-        }
-        function setCat(c) { activeCat = c; renderNavigator(); }
-
-        window.onload = () => { initNavbar(); renderView(); };
-    </script>
-</body>
-</html>
-
-
+                const text = normalizeText(item.title + ' ' + item.content + ' ' + item.article);
+                const terms = normalizeText(query).split(' ').filter(t => t.length > 3
