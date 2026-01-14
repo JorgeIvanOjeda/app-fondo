@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V5.1</title>
+    <title>Fondo Famipardo - Diagnóstico V5.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -49,7 +47,6 @@
     <div id="bottom-nav" class="hidden h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 flex-shrink-0 z-50"></div>
 
     <script>
-        // 1. CONFIGURACIÓN (TUS LLAVES)
         const firebaseConfig = {
             apiKey: "AIzaSyDLxG35sVR6zs8yyrkNL4mOVQMuGeavM9U",
             authDomain: "fondo-famipardo.firebaseapp.com",
@@ -64,14 +61,12 @@
 
         const GEMINI_API_KEY = "AIzaSyApnNYASEXqPAfZKFCyDMhYbRc00QEhdEU"; 
 
-        // 2. DATOS BASE
         const initialUsers = [
             { id: '1010', name: 'Juan Perez', aportes: 2000000, deuda: 500000, multas: 0 },
             { id: '1020', name: 'Maria Rodriguez', aportes: 3500000, deuda: 0, multas: 50000 },
             { id: '1030', name: 'Carlos Gomez', aportes: 1000000, deuda: 1200000, multas: 0 }
         ];
 
-        // 3. ESTATUTOS (TEXTOS COMPLETOS)
         const statutesDatabase = [
             { id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad', category: 'General', keywords: 'meta objetivo proposito fin constitucion crear fondo', content: 'El presente Fondo tiene como finalidad fomentar el hábito del ahorro, fortalecer los vínculos de solidaridad familiar y brindar apoyo a todos sus asociados.' },
             { id: 'art2', article: 'ARTÍCULO 2', title: 'Domicilio', category: 'General', keywords: 'ubicacion lugar ciudad bogota', content: 'El Fondo tendrá como domicilio la ciudad de Bogota D.C. y su creación rige a partir del 1 de octubre del 2001.' },
@@ -104,7 +99,6 @@
         let currentView = 'login';
         let activeCat = 'General';
 
-        // --- UTILIDADES ---
         const f = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
         const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const parseAmount = (text) => {
@@ -116,7 +110,6 @@
         };
         const formatText = (text) => text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // --- INIT ---
         function initSystem() {
             db.collection("socios").doc("1010").get().then((doc) => {
                 if (doc.exists) { console.log("Cloud Connected."); renderApp(); } 
@@ -130,7 +123,6 @@
             });
         }
 
-        // --- LOGIN ---
         window.login = function() {
             const id = document.getElementById('login-id').value.trim();
             const btn = document.getElementById('login-btn');
@@ -148,7 +140,6 @@
         window.switchView = function(viewId) { currentView = viewId; renderApp(); }
         window.navigateToCategory = function(cat) { activeCat = cat; switchView('navigator'); };
 
-        // --- RENDER APP ---
         function renderApp() {
             const container = document.getElementById('app-container');
             const bottomNav = document.getElementById('bottom-nav');
@@ -173,7 +164,6 @@
             lucide.createIcons();
         }
 
-        // --- VISTAS (FULL WIDTH FIX) ---
         function renderLogin(c) {
             c.innerHTML = `<div class="w-full max-w-sm p-6 fade-in"><div class="text-center space-y-6"><div class="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl"><i data-lucide="cloud" class="text-white" width="40"></i></div><div><h1 class="text-3xl font-bold text-slate-800">Bienvenido</h1><p class="text-slate-500 mt-2">Accede a tu cuenta</p></div><div class="bg-white p-6 rounded-2xl shadow-lg border space-y-4 text-left"><div><label class="text-xs font-bold text-slate-400 uppercase ml-1">Cédula</label><input type="number" id="login-id" class="w-full bg-slate-50 border rounded-xl px-4 py-3 mt-1 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: 1010"></div><button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg">Ingresar</button></div></div></div>`;
         }
@@ -185,7 +175,6 @@
         }
 
         function renderOracle(c) {
-            // FIXED LAYOUT: WIDER CONTAINER
             c.innerHTML = `<div class="h-full flex flex-col bg-white"><div id="chat-history" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%] sm:max-w-[70%]">Hola ${currentUser.name.split(' ')[0]}. Pregúntame por tu saldo, deudas o sobre los estatutos.</div></div></div><div class="p-4 sm:p-6 bg-white border-t border-slate-100 flex-shrink-0"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Qué pasa si no pago?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg hover:scale-105 transition-transform"><i data-lucide="send" width="20"></i></button></form></div></div>`;
         }
 
@@ -197,7 +186,6 @@
         function getIconForCat(cat) { const icons = { 'General': 'book-open', 'Ahorro': 'piggy-bank', 'Ingreso': 'user-plus', 'Retiro': 'log-out', 'Préstamos': 'credit-card', 'Legal': 'scale', 'Sanciones': 'shield-alert', 'Gobierno': 'users' }; return icons[cat] || 'file-text'; }
         function renderBottomNav() { const nav = document.getElementById('bottom-nav'); const items = [{ id: 'dashboard', icon: 'layout-grid', label: 'Inicio' }, { id: 'oracle', icon: 'message-square', label: 'Chat' }, { id: 'navigator', icon: 'book-open', label: 'Docs' }]; nav.innerHTML = items.map(i => `<button onclick="switchView('${i.id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 ${currentView === i.id ? 'text-indigo-600' : 'text-slate-400'}"><i data-lucide="${i.icon}" class="${currentView === i.id ? 'fill-indigo-100' : ''}"></i><span class="text-[10px] font-medium">${i.label}</span></button>`).join(''); }
 
-        // --- CEREBRO HÍBRIDO ---
         window.handleChat = async function(e) {
             e.preventDefault();
             const input = document.getElementById('chat-input');
@@ -231,7 +219,7 @@
         async function generateAIResponse(query) {
             const qClean = normalizeText(query);
             
-            // 1. FINANCIERO (LOCAL)
+            // 1. FINANCIERO (LOCAL - REPARADO)
             if (currentUser) {
                 if (qClean.includes('multa') || qClean.includes('sancion')) {
                     if (qClean.includes('tengo') || qClean.includes('mis') || qClean.includes('debo')) return currentUser.multas > 0 ? { text: `⚠️ **Sí, tienes una multa.**\n\nValor: **$${f(currentUser.multas)}**.`, citations: ['Estado de Cuenta'] } : { text: `✅ **Estás al día.**`, citations: ['Estado de Cuenta'] };
@@ -241,45 +229,60 @@
                     const i = currentUser.deuda * 0.005;
                     return { text: `📉 **Deuda Actual**\n\nCapital: **$${f(currentUser.deuda)}**.\nIntereses (0.5%): **$${f(i)}**.\nTotal: **$${f(currentUser.deuda + i)}**.`, citations: ['Estado de Cuenta'] };
                 }
+                // LOGICA DE PRESTAMO CORREGIDA
+                if (qClean.includes('solicitar') || qClean.includes('pedir') || qClean.includes('prestamo')) {
+                    const cupoDisp = (currentUser.aportes * 1) - currentUser.deuda;
+                    const monto = parseAmount(query);
+                    if (monto > 0) {
+                        return monto <= cupoDisp ? { text: `✅ **Sí es posible.**\n\nTu cupo es **$${f(cupoDisp)}** y pides **$${f(monto)}**.`, citations: ['Cálculo Cupo'] } : { text: `❌ **No es posible.**\n\nTu cupo máximo es **$${f(cupoDisp)}**.`, citations: ['Cupo Excedido'] };
+                    }
+                    // Si no dice monto, decirle cuánto puede pedir
+                    return { text: `💰 **Cupo Disponible**\n\nPuedes solicitar hasta **$${f(cupoDisp)}** (100% aportes - deuda).`, citations: ['Cálculo Cupo'] };
+                }
                 if (qClean.includes('aporte') || qClean.includes('ahorro')) return { text: `💰 **Tus Aportes**\n\nTotal: **$${f(currentUser.aportes)}**.`, citations: ['Estado de Cuenta'] };
             }
 
-            // 2. IA (GEMINI) - Solo si hay llave
-            if (GEMINI_API_KEY && GEMINI_API_KEY.startsWith("AIza")) {
+            // 2. IA (GEMINI) - CON DIAGNÓSTICO EN CONSOLA
+            if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
+                console.log("Intentando conectar con Gemini...");
                 try {
                     const prompt = `Eres un asistente del Fondo Famipardo. Responde SOLO basándote en: ${statutesDatabase.map(s => s.content).join(" ")}. Pregunta: ${query}`;
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                     const d = await r.json();
-                    if (d.candidates) return { text: d.candidates[0].content.parts[0].text, citations: ['Gemini AI'] };
-                } catch (e) { console.log("AI Failed, using local."); }
+                    
+                    if (d.error) {
+                        console.error("Error de Gemini (API):", d.error);
+                    } else if (d.candidates) {
+                        console.log("Gemini respondió correctamente.");
+                        return { text: d.candidates[0].content.parts[0].text, citations: ['Gemini AI'] };
+                    }
+                } catch (e) { console.error("Error de Red Gemini:", e); }
+            } else {
+                console.log("Gemini saltado: No hay API Key o es muy corta.");
             }
 
-            // 3. FALLBACK LOCAL (BUSCADOR CORREGIDO)
+            // 3. FALLBACK LOCAL (BUSCADOR CORREGIDO PARA NUMEROS)
+            console.log("Usando búsqueda local...");
             const results = searchStatutes(query);
             if (results.length > 0) return { text: `• Según **${results[0].article}**: "${results[0].content}"`, citations: [results[0].title] };
             return { text: "No encontré información exacta en los estatutos.", citations: [] };
         }
 
-        // --- BUSCADOR LOCAL MEJORADO (ENCUENTRA "ARTÍCULO 1") ---
         function searchStatutes(query) {
             const q = normalizeText(query);
-            // CORRECCIÓN: Permitimos palabras cortas (para encontrar "1", "2") y filtramos palabras vacías
-            const stopWords = new Set(['el', 'la', 'los', 'un', 'una', 'de', 'del', 'y', 'o', 'a', 'en', 'que', 'es', 'por', 'para']);
-            const terms = q.split(' ').filter(t => t.length > 0 && !stopWords.has(t)); 
+            // CORRECCIÓN: Permitimos palabras de 1 letra si son números
+            const terms = q.split(' ').filter(t => t.length > 2 || !isNaN(t)); 
 
             const results = statutesDatabase.map(i => {
                 let score = 0;
-                // CORRECCIÓN: Buscamos también en las keywords ocultas
                 const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
-                
                 terms.forEach(t => { 
-                    if (text.includes(t)) score += 10; 
-                    // Puntos extra si coincide con el número de artículo
-                    if (normalizeText(i.article).includes(t)) score += 20;
+                    if (text.includes(t)) score += 10;
+                    // Prioridad a números de artículos exactos
+                    if (normalizeText(i.article).endsWith(t)) score += 50; 
                 });
                 return { item: i, score };
             });
-            // CORRECCIÓN: Ordenamos por score descendente
             return results.filter(r => r.score > 0).sort((a,b) => b.score - a.score).map(r => r.item);
         }
 
