@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V5.9 (Final)</title>
+    <title>Fondo Famipardo - V6.0 (Estatutos Completos)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -59,7 +59,7 @@
         const db = firebase.firestore();
 
         // =================================================================
-        // ⚠️ PEGA TU API KEY NUEVA AQUÍ ⚠️
+        // ⚠️ PEGA TU LLAVE QUE YA FUNCIONA AQUÍ ⚠️
         // =================================================================
         const GEMINI_API_KEY = "AIzaSyCMBtUOpS7csvJFXNCqRAFq4yfD9PcX2VQ"; 
 
@@ -69,21 +69,33 @@
             { id: '1030', name: 'Carlos Gomez', aportes: 1000000, deuda: 1200000, multas: 0 }
         ];
 
+        // BASE DE DATOS DE ESTATUTOS COMPLETA (Actualizada V6.0)
         const statutesDatabase = [
             { id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad', category: 'General', keywords: 'meta objetivo proposito fin constitucion crear fondo', content: 'El presente Fondo tiene como finalidad fomentar el hábito del ahorro, fortalecer los vínculos de solidaridad familiar y brindar apoyo a todos sus asociados.' },
             { id: 'art2', article: 'ARTÍCULO 2', title: 'Domicilio', category: 'General', keywords: 'ubicacion lugar ciudad bogota', content: 'El Fondo tendrá como domicilio la ciudad de Bogota D.C. y su creación rige a partir del 1 de octubre del 2001.' },
             { id: 'art3', article: 'ARTÍCULO 3', title: 'Duración', category: 'General', keywords: 'tiempo fin acabar cerrar', content: 'La duración del Fondo será indefinida. Podrá disolverse en cualquier momento si así lo deciden los asociados mediante voluntad escrita o por decisión en Asamblea General.' },
             { id: 'art4', article: 'ARTÍCULO 4', title: 'Capital', category: 'Ahorro', keywords: 'dinero plata recursos fondos utilidades', content: 'El capital se constituirá de: a) Aportes obligatorios de los asociados. b) Utilidades y cualquier ingreso acumulado.' },
             { id: 'art5', article: 'ARTÍCULO 5', title: 'Ingreso Nuevo Asociado', category: 'Ingreso', keywords: 'entrar nuevo afiliacion costo requisitos socio socios ingresos', content: 'Para ingresar se requiere: 1. Pago de cuota de admisión (dos veces el valor del aporte obligatorio). 2. El nuevo asociado no tendrá derecho a utilidades acumuladas hasta la fecha de su ingreso.' },
+            { id: 'art6', article: 'ARTÍCULO 6', title: 'Requisito Familiar', category: 'Ingreso', keywords: 'familia pariente parentesco socio socios', content: 'Para ser admitido como nuevo asociado, es necesario pertenecer al grupo familiar de uno de los asociados activos.' },
             { id: 'art13', article: 'ARTÍCULO 13', title: 'Fondo de Solidaridad', category: 'Ahorro', keywords: 'calamidad emergencia ayuda auxilio', content: 'Se destinará el 10% de las utilidades mensuales para eventualidades (calamidad doméstica) hasta alcanzar $1.000.000.' },
             { id: 'art14', article: 'ARTÍCULO 14', title: 'Cuota Mensual', category: 'Ahorro', keywords: 'mensualidad cuanto pagar aporte', content: 'El aporte mensual será establecido en la asamblea ordinaria.' },
             { id: 'art7', article: 'ARTÍCULO 7', title: 'Retiro', category: 'Retiro', keywords: 'salir renunciar irse devolucion dinero', content: 'Al retirarse, un asociado tendrá derecho a la devolución de sus aportes y utilidades a la fecha del balance del mes anterior, previo cruce de cuentas.' },
+            { id: 'art8', article: 'ARTÍCULO 8', title: 'Devolución', category: 'Retiro', keywords: 'devolver plata saldo deuda', content: 'Cuando un asociado se retire se le devolverán sus aportes y utilidades. El saldo pendiente pasará directamente al codeudor solidario.' },
             { id: 'art9', article: 'ARTÍCULO 9', title: 'Plazo Devolución', category: 'Retiro', keywords: 'cuando pagan demora tiempo', content: 'El plazo para la devolución de su capital se ajustará a la disponibilidad del fondo con prioridad uno.' },
+            { id: 'art10', article: 'ARTÍCULO 10', title: 'Beneficiarios', category: 'Retiro', keywords: 'muerte fallecimiento herederos', content: 'Todo asociado deberá relacionar a sus beneficiarios con sus respectivos porcentajes para la devolución del saldo.' },
             { id: 'art11', article: 'ARTÍCULO 11', title: 'Derechos', category: 'Legal', keywords: 'puedo hacer beneficios votar voz', content: 'Son derechos: a) Disfrutar de servicios y beneficios. b) Deliberar en asambleas. c) Fiscalizar cumplimiento de estatutos. d) Participar en administración.' },
             { id: 'art12', article: 'ARTÍCULO 12', title: 'Obligaciones', category: 'Legal', keywords: 'deberes reglas cumplir pagar', content: 'Son obligaciones: a) Cumplir puntualmente pagos. b) Acatar estatutos. c) Desempeñar cargos elegidos. d) Cumplir obligaciones financieras.' },
-            { id: 'art15', article: 'ARTÍCULO 15', title: 'Reglamento de Préstamos', category: 'Préstamos', keywords: 'credito plata prestar interes tasa cuanto prestan gravamen 4x1000 nuevo credito prestamo cupo', content: 'Los socios dispondrán de un cupo de crédito de hasta el 100% de sus aportes. Interés 0.5% mensual. Si hay mora es 0.8%. Se puede solicitar nuevo crédito recogiendo el anterior.' },
+            { id: 'art15', article: 'ARTÍCULO 15', title: 'Reglamento de Préstamos', category: 'Préstamos', keywords: 'credito plata prestar interes tasa cuanto prestan gravamen 4x1000 nuevo credito prestamo cupo', content: 'Los socios dispondrán de un cupo de crédito de hasta el 100% de sus aportes a la fecha de la solicitud, con un interés del 0.5% mensual, y del 0.8% si el crédito presenta mora. Si un socio solicita un nuevo crédito, se le prestará hasta el 100% del cupo de endeudamiento, el cual se consolidará con la deuda actual a un interés del 0.8% hasta su cancelación. A particulares se les prestará hasta 5 SMLV a un interés del 2% mensual, presentando las garantías necesarias para su respaldo (letra y codeudor del Fondo con cupo). PARAGRAFO: El acreedor del préstamo deberá asumir el gravamen financiero cobrado por la entidad bancaria, el cual será pagado en la primera cuota.' },
             { id: 'art16', article: 'ARTÍCULO 16', title: 'Sanciones', category: 'Sanciones', keywords: 'multa multas castigo penalidad inasistencia orden pago prelacion prioridad distribucion', content: 'Se multará con el valor de la cuota de afiliación al asociado que no asista a las reuniones. PARAGRAFO: Todo pago y distribución de excedentes se aplicará primero a sanciones, luego a intereses, después a deuda, y por último al ahorro.' },
-            { id: 'art20', article: 'ARTÍCULO 20', title: 'Junta Directiva', category: 'Gobierno', keywords: 'conformacion directiva quienes son', content: 'La Junta Directiva estará compuesta por un(a) presidente, un(a) tesorero(a) y un(a) secretario(a).' }
+            { id: 'art17', article: 'ARTÍCULO 17', title: 'Quórum', category: 'Gobierno', keywords: 'asistentes cuantos mitad uno', content: 'El quórum requerido para la validez de las deliberaciones de la Asamblea General es la mitad más uno (1) de los asociados.' },
+            { id: 'art18', article: 'ARTÍCULO 18', title: 'Actas', category: 'Gobierno', keywords: 'registro libro firma', content: 'Las deliberaciones de la asamblea general se harán constar en el libro de actas, las cuales firman el presidente y la secretaria.' },
+            { id: 'art19', article: 'ARTÍCULO 19', title: 'Atribuciones Asamblea', category: 'Gobierno', keywords: 'funciones poder reformar elegir', content: 'Son atribuciones: a) Disolver el Fondo. b) Reformar estatutos. c) Aprobar estados financieros. d) Elegir Junta Directiva por periodos anuales. PARAGRAFO: Cada dos periodos se debe renovar el 50% de la misma.' },
+            { id: 'art20', article: 'ARTÍCULO 20', title: 'Junta Directiva', category: 'Gobierno', keywords: 'conformacion directiva quienes son', content: 'La Junta Directiva estará compuesta por un(a) presidente, un(a) tesorero(a) y un(a) secretario(a).' },
+            { id: 'art21', article: 'ARTÍCULO 21', title: 'Reuniones Junta', category: 'Gobierno', keywords: 'cuando reunen sesion', content: 'La junta directiva se reunirá en sesiones ordinarias y extraordinarias tantas veces como sean necesarias. Se reunirá media hora antes de la Asamblea General.' },
+            { id: 'func_junta', article: 'FUNCIONES', title: 'Junta Directiva', category: 'Gobierno', keywords: 'que hacen atribuciones tareas', content: 'Funciones: Presentar a la Asamblea el balance y un informe de gestión. Aprobar o negar los préstamos solicitados. Convocar a la Asamblea General a sesiones extraordinarias.' },
+            { id: 'rol_presi', article: 'ROL', title: 'Presidente', category: 'Gobierno', keywords: 'encargado funciones tareas cabeza lider', content: 'Funciones del Presidente: Presidir todas las reuniones de asamblea y junta directiva. Presentar Informe de Gestión ante la Asamblea. Establecer el orden del día para las reuniones.' },
+            { id: 'rol_secr', article: 'ROL', title: 'Secretario', category: 'Gobierno', keywords: 'encargado funciones tareas actas archivo', content: 'Funciones del Secretario: Organizar archivo, llevar libros de actas, colaborar con la junta.' },
+            { id: 'rol_teso', article: 'ROL', title: 'Tesorero', category: 'Gobierno', keywords: 'encargado funciones tareas plata cuentas banco', content: 'Funciones del Tesorero: A. Atender el movimiento de las cuentas del fondo, percibiendo todos ingresos y efectuando los pagos a que haya lugar. B. Elaborar los informes financieros mensualmente.' }
         ];
 
         let currentUser = null;
@@ -92,13 +104,6 @@
 
         const f = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
         const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const parseAmount = (text) => {
-            const clean = text.toLowerCase().replace(/\./g, '').replace(/,/g, '');
-            let m = 1;
-            if (clean.includes('millon')) m = 1000000; else if (clean.includes('mil') || clean.includes('k')) m = 1000;
-            const match = clean.match(/(\d+)/);
-            return match ? parseInt(match[0]) * m : 0;
-        };
         const formatText = (text) => text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
         function initSystem() {
@@ -217,7 +222,7 @@
                     - Nombre: ${currentUser.name}
                     - Aportes: ${f(currentUser.aportes)}
                     - Deuda: ${f(currentUser.deuda)}
-                    - Cupo Disponible: ${f(currentUser.aportes - currentUser.deuda)}
+                    - Cupo Disponible para pedir: ${f(currentUser.aportes - currentUser.deuda)}
                     ESTATUTOS:
                     ${statutesDatabase.map(s => s.content).join(" ")}
                 `;
@@ -287,4 +292,3 @@
     </script>
 </body>
 </html>
-
