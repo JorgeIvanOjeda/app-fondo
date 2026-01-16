@@ -3,34 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INSTALADOR DE BASE DE DATOS</title>
+    <title>Fondo Famipardo - V7.0 (Final & Segura)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Estilos Tablas del Chat */
+        .chat-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        .chat-table th { background-color: #4f46e5; color: white; text-align: left; padding: 10px; font-weight: bold; }
+        .chat-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; background-color: #fff; }
+        .chat-table tr:last-child td { border-bottom: none; }
+        .chat-content strong { font-weight: 700; color: #312e81; }
+        .thinking-dot { animation: bounce 1.4s infinite ease-in-out both; width: 6px; height: 6px; background-color: #6366f1; border-radius: 50%; display: inline-block; margin: 0 1px; }
+        .thinking-dot:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
 </head>
-<body class="bg-slate-900 text-white h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-50 font-sans text-slate-800 h-screen flex flex-col overflow-hidden">
 
-    <div class="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl text-center space-y-6">
-        <div class="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto animate-pulse">
-            <i data-lucide="database" width="40"></i>
+    <nav class="bg-slate-900 text-white p-3 flex items-center justify-between shadow-lg z-50 flex-shrink-0">
+        <div class="flex items-center gap-3 px-4">
+            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white">F</div>
+            <span class="font-bold text-sm tracking-wide text-slate-200">FONDO <span class="text-indigo-400">FAMIPARDO</span></span>
         </div>
-        
-        <h1 class="text-2xl font-bold">Instalador de Datos</h1>
-        <p class="text-slate-400 text-sm">
-            Este programa subirá los Estatutos y los Usuarios iniciales a Firebase de forma segura.
-        </p>
-
-        <div id="status" class="bg-slate-900 p-4 rounded-lg text-xs font-mono text-left h-32 overflow-y-auto border border-slate-700">
-            Esperando inicio...
+        <div id="user-menu" class="hidden flex items-center gap-4 px-4">
+            <span id="user-name-display" class="text-xs font-medium text-slate-400 hidden sm:block"></span>
+            <button onclick="logout()" class="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors" title="Cerrar Sesión">
+                <i data-lucide="log-out" width="18"></i>
+            </button>
         </div>
+    </nav>
 
-        <button onclick="startMigration()" id="btn-migrar" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2">
-            <i data-lucide="upload-cloud"></i> INICIAR MIGRACIÓN
-        </button>
-    </div>
+    <main id="app-container" class="flex-1 overflow-hidden relative w-full h-full flex flex-col items-center justify-center">
+        <div class="text-center space-y-4 fade-in">
+            <div class="animate-spin text-indigo-600 mx-auto"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>
+            <div id="loading-text" class="text-indigo-600 font-bold animate-pulse">Conectando con la Nube...</div>
+        </div>
+    </main>
+
+    <div id="bottom-nav" class="hidden h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 flex-shrink-0 z-50"></div>
 
     <script>
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDLxG35sVR6zs8yyrkNL4mOVQMuGeavM9U",
             authDomain: "fondo-famipardo.firebaseapp.com",
@@ -42,86 +63,270 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        lucide.createIcons();
 
-        // --- DATOS A SUBIR (HARDCODEADOS POR ÚLTIMA VEZ) ---
-        const initialUsers = [
-            { id: '1010', name: 'Juan Perez', aportes: 2000000, deuda: 500000, multas: 0 },
-            { id: '1020', name: 'Maria Rodriguez', aportes: 3500000, deuda: 0, multas: 50000 },
-            { id: '1030', name: 'Carlos Gomez', aportes: 1000000, deuda: 1200000, multas: 0 }
-        ];
+        // VARIABLES DE ESTADO (Se llenan desde la nube)
+        let GEMINI_API_KEY = null;
+        let statutesDatabase = []; 
+        let currentUser = null;
+        let currentView = 'login';
+        let activeCat = 'General';
 
-        const statutesDatabase = [
-            { id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad', category: 'General', keywords: 'meta objetivo proposito fin constitucion crear fondo', content: 'El presente Fondo tiene como finalidad fomentar el hábito del ahorro, fortalecer los vínculos de solidaridad familiar y brindar apoyo a todos sus asociados.' },
-            { id: 'art2', article: 'ARTÍCULO 2', title: 'Domicilio', category: 'General', keywords: 'ubicacion lugar ciudad bogota', content: 'El Fondo tendrá como domicilio la ciudad de Bogota D.C. y su creación rige a partir del 1 de octubre del 2001.' },
-            { id: 'art3', article: 'ARTÍCULO 3', title: 'Duración', category: 'General', keywords: 'tiempo fin acabar cerrar', content: 'La duración del Fondo será indefinida. Podrá disolverse en cualquier momento si así lo deciden los asociados mediante voluntad escrita o por decisión en Asamblea General.' },
-            { id: 'art4', article: 'ARTÍCULO 4', title: 'Capital', category: 'Ahorro', keywords: 'dinero plata recursos fondos utilidades', content: 'El capital se constituirá de: a) Aportes obligatorios de los asociados. b) Utilidades y cualquier ingreso acumulado.' },
-            { id: 'art5', article: 'ARTÍCULO 5', title: 'Ingreso Nuevo Asociado', category: 'Ingreso', keywords: 'entrar nuevo afiliacion costo requisitos socio socios ingresos', content: 'Para ingresar se requiere: 1. Pago de cuota de admisión (dos veces el valor del aporte obligatorio). 2. El nuevo asociado no tendrá derecho a utilidades acumuladas hasta la fecha de su ingreso.' },
-            { id: 'art6', article: 'ARTÍCULO 6', title: 'Requisito Familiar', category: 'Ingreso', keywords: 'familia pariente parentesco socio socios', content: 'Para ser admitido como nuevo asociado, es necesario pertenecer al grupo familiar de uno de los asociados activos.' },
-            { id: 'art13', article: 'ARTÍCULO 13', title: 'Fondo de Solidaridad', category: 'Ahorro', keywords: 'calamidad emergencia ayuda auxilio', content: 'Se destinará el 10% de las utilidades mensuales para eventualidades (calamidad doméstica) hasta alcanzar $1.000.000.' },
-            { id: 'art14', article: 'ARTÍCULO 14', title: 'Cuota Mensual', category: 'Ahorro', keywords: 'mensualidad cuanto pagar aporte', content: 'El aporte mensual será establecido en la asamblea ordinaria.' },
-            { id: 'art7', article: 'ARTÍCULO 7', title: 'Retiro', category: 'Retiro', keywords: 'salir renunciar irse devolucion dinero', content: 'Al retirarse, un asociado tendrá derecho a la devolución de sus aportes y utilidades a la fecha del balance del mes anterior, previo cruce de cuentas.' },
-            { id: 'art8', article: 'ARTÍCULO 8', title: 'Devolución', category: 'Retiro', keywords: 'devolver plata saldo deuda', content: 'Cuando un asociado se retire se le devolverán sus aportes y utilidades. El saldo pendiente pasará directamente al codeudor solidario.' },
-            { id: 'art9', article: 'ARTÍCULO 9', title: 'Plazo Devolución', category: 'Retiro', keywords: 'cuando pagan demora tiempo', content: 'El plazo para la devolución de su capital se ajustará a la disponibilidad del fondo con prioridad uno.' },
-            { id: 'art10', article: 'ARTÍCULO 10', title: 'Beneficiarios', category: 'Retiro', keywords: 'muerte fallecimiento herederos', content: 'Todo asociado deberá relacionar a sus beneficiarios con sus respectivos porcentajes para la devolución del saldo.' },
-            { id: 'art11', article: 'ARTÍCULO 11', title: 'Derechos', category: 'Legal', keywords: 'puedo hacer beneficios votar voz', content: 'Son derechos: a) Disfrutar de servicios y beneficios. b) Deliberar en asambleas. c) Fiscalizar cumplimiento de estatutos. d) Participar en administración.' },
-            { id: 'art12', article: 'ARTÍCULO 12', title: 'Obligaciones', category: 'Legal', keywords: 'deberes reglas cumplir pagar', content: 'Son obligaciones: a) Cumplir puntualmente pagos. b) Acatar estatutos. c) Desempeñar cargos elegidos. d) Cumplir obligaciones financieras.' },
-            { id: 'art15', article: 'ARTÍCULO 15', title: 'Reglamento de Préstamos', category: 'Préstamos', keywords: 'credito plata prestar interes tasa cuanto prestan gravamen 4x1000 nuevo credito prestamo cupo', content: 'Los socios dispondrán de un cupo de crédito de hasta el 100% de sus aportes a la fecha de la solicitud, con un interés del 0.5% mensual, y del 0.8% si el crédito presenta mora. Si un socio solicita un nuevo crédito, se le prestará hasta el 100% del cupo de endeudamiento, el cual se consolidará con la deuda actual a un interés del 0.8% hasta su cancelación. A particulares se les prestará hasta 5 SMLV a un interés del 2% mensual, presentando las garantías necesarias para su respaldo (letra y codeudor del Fondo con cupo). PARAGRAFO: El acreedor del préstamo deberá asumir el gravamen financiero cobrado por la entidad bancaria, el cual será pagado en la primera cuota.' },
-            { id: 'art16', article: 'ARTÍCULO 16', title: 'Sanciones', category: 'Sanciones', keywords: 'multa multas castigo penalidad inasistencia orden pago prelacion prioridad distribucion', content: 'Se multará con el valor de la cuota de afiliación al asociado que no asista a las reuniones. PARAGRAFO: Todo pago y distribución de excedentes se aplicará primero a sanciones, luego a intereses, después a deuda, y por último al ahorro.' },
-            { id: 'art17', article: 'ARTÍCULO 17', title: 'Quórum', category: 'Gobierno', keywords: 'asistentes cuantos mitad uno', content: 'El quórum requerido para la validez de las deliberaciones de la Asamblea General es la mitad más uno (1) de los asociados.' },
-            { id: 'art18', article: 'ARTÍCULO 18', title: 'Actas', category: 'Gobierno', keywords: 'registro libro firma', content: 'Las deliberaciones de la asamblea general se harán constar en el libro de actas, las cuales firman el presidente y la secretaria.' },
-            { id: 'art19', article: 'ARTÍCULO 19', title: 'Atribuciones Asamblea', category: 'Gobierno', keywords: 'funciones poder reformar elegir', content: 'Son atribuciones: a) Disolver el Fondo. b) Reformar estatutos. c) Aprobar estados financieros. d) Elegir Junta Directiva por periodos anuales. PARAGRAFO: Cada dos periodos se debe renovar el 50% de la misma.' },
-            { id: 'art20', article: 'ARTÍCULO 20', title: 'Junta Directiva', category: 'Gobierno', keywords: 'conformacion directiva quienes son', content: 'La Junta Directiva estará compuesta por un(a) presidente, un(a) tesorero(a) y un(a) secretario(a).' },
-            { id: 'art21', article: 'ARTÍCULO 21', title: 'Reuniones Junta', category: 'Gobierno', keywords: 'cuando reunen sesion', content: 'La junta directiva se reunirá en sesiones ordinarias y extraordinarias tantas veces como sean necesarias. Se reunirá media hora antes de la Asamblea General.' },
-            { id: 'func_junta', article: 'FUNCIONES', title: 'Junta Directiva', category: 'Gobierno', keywords: 'que hacen atribuciones tareas', content: 'Funciones: Presentar a la Asamblea el balance y un informe de gestión. Aprobar o negar los préstamos solicitados. Convocar a la Asamblea General a sesiones extraordinarias.' },
-            { id: 'rol_presi', article: 'ROL', title: 'Presidente', category: 'Gobierno', keywords: 'encargado funciones tareas cabeza lider', content: 'Funciones del Presidente: Presidir todas las reuniones de asamblea y junta directiva. Presentar Informe de Gestión ante la Asamblea. Establecer el orden del día para las reuniones.' },
-            { id: 'rol_secr', article: 'ROL', title: 'Secretario', category: 'Gobierno', keywords: 'encargado funciones tareas actas archivo', content: 'Funciones del Secretario: Organizar archivo, llevar libros de actas, colaborar con la junta.' },
-            { id: 'rol_teso', article: 'ROL', title: 'Tesorero', category: 'Gobierno', keywords: 'encargado funciones tareas plata cuentas banco', content: 'Funciones del Tesorero: A. Atender el movimiento de las cuentas del fondo, percibiendo todos ingresos y efectuando los pagos a que haya lugar. B. Elaborar los informes financieros mensualmente.' }
-        ];
+        // UTILIDADES
+        const f = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
+        const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        // FORMATO DE TEXTO (Tablas y Negritas)
+        const formatText = (text) => {
+            let formatted = text;
+            // Convertir tablas Markdown a HTML
+            const tableRegex = /((?:\|.*\|(?:\r?\n|$))+)/g;
+            formatted = formatted.replace(tableRegex, (match) => {
+                const rows = match.trim().split('\n');
+                let html = '<table class="chat-table">';
+                rows.forEach((row, index) => {
+                    if (row.includes('---')) return; 
+                    const cols = row.split('|').filter(c => c.trim() !== '');
+                    html += '<tr>';
+                    cols.forEach(col => {
+                        if (index === 0) html += `<th>${col.trim()}</th>`;
+                        else html += `<td>${col.trim()}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</table>';
+                return html;
+            });
+            // Negritas y saltos de línea
+            return formatted.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        };
 
-        function log(msg) {
-            const el = document.getElementById('status');
-            el.innerHTML += `> ${msg}<br>`;
-            el.scrollTop = el.scrollHeight;
-        }
+        const extractCitations = (text) => {
+            const regex = /(?:ARTÍCULO|ARTICULO)\s+(\d+)/gi;
+            const matches = [...text.matchAll(regex)];
+            if (matches.length > 0) return [...new Set(matches.map(m => `ARTÍCULO ${m[1]}`))];
+            if (text.toLowerCase().includes('estatuto')) return ['Estatutos'];
+            return [];
+        };
 
-        async function startMigration() {
-            const btn = document.getElementById('btn-migrar');
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-            log('Conectando con base de datos...');
-
+        // --- SISTEMA DE INICIO (CARGA DESDE LA NUBE) ---
+        async function initSystem() {
             try {
-                const batch = db.batch();
-                let count = 0;
+                // 1. Obtener Llave API Segura
+                const keyDoc = await db.collection("configuracion").doc("secretos").get();
+                if (keyDoc.exists) {
+                    GEMINI_API_KEY = keyDoc.data().gemini_key;
+                } else {
+                    console.error("Falta la llave en Firebase (configuracion/secretos)");
+                }
 
-                log(' Preparando estatutos...');
-                statutesDatabase.forEach((statute) => {
-                    const ref = db.collection('estatutos').doc(statute.id);
-                    batch.set(ref, statute);
-                    count++;
-                });
+                // 2. Descargar Estatutos (Ya no están en el código)
+                console.log("Sincronizando estatutos...");
+                const snapshot = await db.collection('estatutos').get();
+                if (!snapshot.empty) {
+                    statutesDatabase = snapshot.docs.map(doc => doc.data());
+                    // Ordenar por ID para que salgan en orden (art1, art2...)
+                    statutesDatabase.sort((a, b) => {
+                        const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
+                        const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+                        return numA - numB;
+                    });
+                }
 
-                log(' Preparando socios...');
-                initialUsers.forEach((user) => {
-                    const ref = db.collection('socios').doc(user.id);
-                    batch.set(ref, user, { merge: true });
-                    count++;
-                });
+                // Renderizar Login
+                renderApp();
 
-                log(` Subiendo ${count} documentos...`);
-                await batch.commit();
-
-                log('✅ ¡MIGRACIÓN COMPLETADA CON ÉXITO!');
-                alert('¡Datos subidos correctamente a la nube! Ahora puedes subir la versión final (V7.0) del código.');
-
-            } catch (error) {
-                log('❌ ERROR: ' + error.message);
-                alert('Hubo un error. Revisa el log.');
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
+            } catch (err) {
+                document.getElementById('app-container').innerHTML = `<div class="p-8 text-center text-red-600 font-bold">Error de Conexión: ${err.message}</div>`;
             }
         }
+
+        // --- GESTIÓN DE USUARIOS (LOGIN EN LA NUBE) ---
+        window.login = function() {
+            const id = document.getElementById('login-id').value.trim();
+            const btn = document.getElementById('login-btn');
+            if (!id) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i> Verificando...';
+            lucide.createIcons();
+            
+            db.collection("socios").doc(id).get().then((doc) => {
+                if (doc.exists) { 
+                    currentUser = doc.data(); 
+                    switchView('dashboard'); 
+                } else { 
+                    alert('Usuario no encontrado en la base de datos.'); 
+                    btn.disabled = false; 
+                    btn.textContent = 'Ingresar'; 
+                }
+            }).catch(err => { 
+                alert('Error: ' + err.message); 
+                btn.disabled = false; 
+                btn.textContent = 'Ingresar'; 
+            });
+        };
+
+        window.logout = function() { currentUser = null; switchView('login'); };
+        window.switchView = function(viewId) { currentView = viewId; renderApp(); }
+        window.navigateToCategory = function(cat) { activeCat = cat; switchView('navigator'); };
+
+        // --- RENDERIZADO DE VISTAS ---
+        function renderApp() {
+            const container = document.getElementById('app-container');
+            const bottomNav = document.getElementById('bottom-nav');
+            const userMenu = document.getElementById('user-menu');
+            const userName = document.getElementById('user-name-display');
+
+            if (currentView === 'login') {
+                bottomNav.classList.add('hidden');
+                userMenu.classList.add('hidden');
+                container.classList.remove('justify-start'); container.classList.add('justify-center');
+                renderLogin(container);
+            } else {
+                bottomNav.classList.remove('hidden');
+                userMenu.classList.remove('hidden');
+                container.classList.add('justify-start'); container.classList.remove('justify-center');
+                if(currentUser) userName.textContent = currentUser.name;
+                renderBottomNav();
+                if (currentView === 'dashboard') renderDashboard(container);
+                else if (currentView === 'oracle') renderOracle(container);
+                else if (currentView === 'navigator') renderNavigator(container);
+            }
+            lucide.createIcons();
+        }
+
+        function renderLogin(c) {
+            c.innerHTML = `<div class="w-full max-w-sm p-6 fade-in"><div class="text-center space-y-6"><div class="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl"><i data-lucide="cloud" class="text-white" width="40"></i></div><div><h1 class="text-3xl font-bold text-slate-800">Bienvenido</h1><p class="text-slate-500 mt-2">Acceso Seguro Famipardo</p></div><div class="bg-white p-6 rounded-2xl shadow-lg border space-y-4 text-left"><div><label class="text-xs font-bold text-slate-400 uppercase ml-1">Cédula</label><input type="number" id="login-id" class="w-full bg-slate-50 border rounded-xl px-4 py-3 mt-1 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: 1010"></div><button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg">Ingresar</button></div></div></div>`;
+        }
+
+        function renderDashboard(c) {
+            const cupo = (currentUser.aportes * 1) - currentUser.deuda;
+            const uso = Math.min((currentUser.deuda / currentUser.aportes) * 100, 100);
+            c.innerHTML = `<div class="w-full h-full overflow-y-auto bg-slate-50 p-4 sm:p-8 fade-in"><div class="max-w-5xl mx-auto space-y-6"><div class="flex justify-between items-end"><div><h2 class="text-2xl font-bold text-slate-800">Hola, ${currentUser.name.split(' ')[0]} 👋</h2><p class="text-slate-500 text-sm">Resumen financiero</p></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden"><div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div><div class="relative z-10"><div class="flex justify-between items-start mb-8"><div><p class="text-indigo-200 text-xs font-bold uppercase mb-1">Cupo Disponible</p><h3 class="text-5xl font-bold tracking-tight">${f(cupo)}</h3></div><div class="bg-white/20 p-3 rounded-2xl backdrop-blur-sm"><i data-lucide="wallet" class="text-white" width="24" height="24"></i></div></div><div class="space-y-2"><div class="flex justify-between text-xs text-indigo-100 font-medium"><span>Uso del crédito</span><span>${Math.round(uso)}%</span></div><div class="h-2 bg-black/20 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width: ${uso}%"></div></div></div></div></div><div class="grid grid-cols-1 gap-4"><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center"><div class="flex items-center gap-2 mb-2 text-slate-400"><i data-lucide="piggy-bank" width="18"></i><span class="text-xs font-bold uppercase">Aportes</span></div><p class="text-3xl font-bold text-slate-800">${f(currentUser.aportes)}</p></div><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center"><div class="flex items-center gap-2 mb-2 text-slate-400"><i data-lucide="trending-down" width="18"></i><span class="text-xs font-bold uppercase">Deuda Actual</span></div><p class="text-3xl font-bold text-slate-800">${f(currentUser.deuda)}</p></div></div></div>${currentUser.multas > 0 ? `<div class="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start gap-4"><div class="bg-red-100 p-2 rounded-full text-red-600 shrink-0"><i data-lucide="alert-circle" width="20"></i></div><div><h4 class="font-bold text-red-800 text-sm">Multa Pendiente</h4><p class="text-xs text-red-600 mt-1">Sanción registrada: <strong>${f(currentUser.multas)}</strong>.</p></div></div>` : ''}<div><h3 class="text-sm font-bold text-slate-400 uppercase mb-3 tracking-wider">Accesos Rápidos</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><button onclick="navigateToCategory('Préstamos')" class="bg-white p-5 rounded-2xl text-left border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group"><div class="bg-green-50 text-green-600 p-3 rounded-xl"><i data-lucide="credit-card"></i></div><div><p class="font-bold text-slate-700">Reglamento de Créditos</p><p class="text-xs text-slate-400">Tasas y condiciones</p></div></button><button onclick="navigateToCategory('Gobierno')" class="bg-white p-5 rounded-2xl text-left border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group"><div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i data-lucide="users"></i></div><div><p class="font-bold text-slate-700">Junta Directiva</p><p class="text-xs text-slate-400">Roles y funciones</p></div></button></div></div></div></div>`;
+        }
+
+        function renderOracle(c) {
+            c.innerHTML = `<div class="h-full flex flex-col bg-white"><div id="chat-history" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%] sm:max-w-[70%]">Hola ${currentUser.name.split(' ')[0]}. Soy tu asesor experto. Pregúntame sobre tus saldos o los estatutos.</div></div></div><div class="p-4 sm:p-6 bg-white border-t border-slate-100 flex-shrink-0"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Cuánto puedo pedir prestado?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg hover:scale-105 transition-transform"><i data-lucide="send" width="20"></i></button></form></div></div>`;
+        }
+
+        function renderNavigator(c) {
+            const filtered = statutesDatabase.filter(s => s.category === activeCat);
+            const cats = ['General', 'Ahorro', 'Ingreso', 'Retiro', 'Préstamos', 'Legal', 'Sanciones', 'Gobierno'];
+            c.innerHTML = `<div class="h-full flex bg-white fade-in"><div class="w-20 sm:w-64 bg-slate-900 text-slate-400 flex flex-col border-r border-slate-800 flex-shrink-0"><div class="p-4 sm:p-6 font-bold text-white tracking-widest text-xs sm:text-sm uppercase mb-2">Capítulos</div><div class="flex-1 overflow-y-auto px-2 space-y-1">${cats.map(cat => `<button onclick="navigateToCategory('${cat}')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 ${activeCat===cat ? 'bg-indigo-600 text-white shadow-lg' : ''}"><i data-lucide="${getIconForCat(cat)}" width="18"></i><span class="hidden sm:inline text-sm font-medium">${cat}</span></button>`).join('')}</div></div><div class="flex-1 flex flex-col bg-slate-50 h-full overflow-hidden"><div class="flex-1 overflow-y-auto p-4 sm:p-8"><div class="max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-slate-800 mb-6 flex items-center gap-3"><i data-lucide="${getIconForCat(activeCat)}" class="text-indigo-600"></i> ${activeCat}</h1><div class="space-y-4">${filtered.length > 0 ? filtered.map(s => `<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all"><h3 class="font-bold text-indigo-700 text-sm uppercase mb-2 flex items-center gap-2">${s.article} ${s.id.startsWith('rol')?'<span class="bg-purple-100 text-purple-700 px-2 rounded-full text-[10px]">Rol</span>':''}</h3><p class="text-slate-600 leading-relaxed">${s.content}</p></div>`).join('') : `<div class="p-10 text-center"><div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full mb-4"></div><p class="text-slate-400">Descargando estatutos...</p></div>`}</div></div></div></div></div>`;
+        }
+        function getIconForCat(cat) { const icons = { 'General': 'book-open', 'Ahorro': 'piggy-bank', 'Ingreso': 'user-plus', 'Retiro': 'log-out', 'Préstamos': 'credit-card', 'Legal': 'scale', 'Sanciones': 'shield-alert', 'Gobierno': 'users' }; return icons[cat] || 'file-text'; }
+        function renderBottomNav() { const nav = document.getElementById('bottom-nav'); const items = [{ id: 'dashboard', icon: 'layout-grid', label: 'Inicio' }, { id: 'oracle', icon: 'message-square', label: 'Chat' }, { id: 'navigator', icon: 'book-open', label: 'Docs' }]; nav.innerHTML = items.map(i => `<button onclick="switchView('${i.id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 ${currentView === i.id ? 'text-indigo-600' : 'text-slate-400'}"><i data-lucide="${i.icon}" class="${currentView === i.id ? 'fill-indigo-100' : ''}"></i><span class="text-[10px] font-medium">${i.label}</span></button>`).join(''); }
+
+        // --- CEREBRO IA ---
+        window.handleChat = async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const history = document.getElementById('chat-history');
+            const q = input.value.trim();
+            if(!q) return;
+
+            history.innerHTML += `<div class="flex gap-4 flex-row-reverse slide-up"><div class="bg-indigo-600 text-white p-4 rounded-2xl rounded-tr-none text-base shadow-md max-w-[85%] sm:max-w-[70%]">${q}</div></div>`;
+            input.value = '';
+            
+            const loadingId = 'loading-' + Date.now();
+            history.innerHTML += `<div id="${loadingId}" class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border text-sm"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div>`;
+            history.scrollTop = history.scrollHeight;
+            lucide.createIcons();
+
+            const res = await generateAIResponse(q);
+            document.getElementById(loadingId)?.remove();
+
+            const citationBadges = res.citations.length > 0 
+                ? `<div class="flex gap-2 flex-wrap mt-2">${res.citations.map(c => `<span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 uppercase">${c}</span>`).join('')}</div>` 
+                : '';
+
+            history.innerHTML += `
+                <div class="flex gap-4 slide-up">
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div>
+                    <div class="space-y-2 max-w-[85%] sm:max-w-[70%]">
+                        <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-700 chat-content leading-relaxed text-base">
+                            ${formatText(res.text)}
+                            ${citationBadges}
+                        </div>
+                    </div>
+                </div>`;
+            history.scrollTop = history.scrollHeight;
+            lucide.createIcons();
+        };
+
+        async function generateAIResponse(query) {
+            let aiResponseText = "";
+            let citations = [];
+
+            if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
+                // Pasamos los estatutos DESCARGADOS
+                const statutesText = statutesDatabase.length > 0 
+                    ? statutesDatabase.map(s => s.content).join(" ") 
+                    : "No hay estatutos disponibles.";
+
+                const contextData = `
+                    DATOS USUARIO:
+                    - Nombre: ${currentUser.name}
+                    - Aportes: ${f(currentUser.aportes)}
+                    - Deuda: ${f(currentUser.deuda)}
+                    - Cupo Disponible para pedir: ${f(currentUser.aportes - currentUser.deuda)}
+                    ESTATUTOS:
+                    ${statutesText}
+                `;
+                
+                const prompt = `Actúa como asesor del Fondo Famipardo. Responde a: "${query}".
+                Usa estos datos: ${contextData}.
+                REGLAS:
+                1. Sé directo. Sin saludos finales (Atentamente).
+                2. Tablas en Markdown estándar.
+                3. Menciona el ARTÍCULO usado.
+                4. Si preguntan cupo, usa la fórmula: Cupo = Aportes - Deuda.`;
+
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const d = await r.json();
+                    if (d.candidates) {
+                        aiResponseText = d.candidates[0].content.parts[0].text;
+                        citations = extractCitations(aiResponseText);
+                    }
+                } catch (e) { console.error("Fallo Gemini 2.5", e); }
+            }
+
+            if (!aiResponseText) {
+                const qClean = normalizeText(query);
+                if (qClean.includes('prestamo') || qClean.includes('cupo')) {
+                    const cupo = currentUser.aportes - currentUser.deuda;
+                    aiResponseText = `💰 **Cupo Disponible (Modo Local)**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Tus aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`;
+                    citations = ['Cálculo Local'];
+                } else {
+                    const results = searchStatutes(query);
+                    if (results.length > 0) {
+                        aiResponseText = `• Según **${results[0].article}**: "${results[0].content}"`;
+                        citations = [results[0].title];
+                    } else {
+                        aiResponseText = "No encontré información exacta.";
+                    }
+                }
+            }
+            return { text: aiResponseText, citations: citations };
+        }
+
+        function searchStatutes(query) {
+            const q = normalizeText(query);
+            const terms = q.split(' ').filter(t => t.length > 2 || !isNaN(t)); 
+            const results = statutesDatabase.map(i => {
+                let score = 0;
+                const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
+                terms.forEach(t => { if (text.includes(t)) score += 10; });
+                return { item: i, score };
+            });
+            return results.filter(r => r.score > 0).sort((a,b) => b.score - a.score).map(r => r.item);
+        }
+
+        window.onload = initSystem;
     </script>
 </body>
 </html>
