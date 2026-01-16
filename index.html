@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V6.1 (Secure Vault)</title>
+    <title>Fondo Famipardo - V6.2 (Pulido Final)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -14,6 +14,11 @@
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Estilos para las tablas generadas dinámicamente */
+        .chat-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        .chat-table th { background-color: #4f46e5; color: white; text-align: left; padding: 10px; font-weight: bold; }
+        .chat-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; background-color: #fff; }
+        .chat-table tr:last-child td { border-bottom: none; }
         .chat-content strong { font-weight: 700; color: #312e81; }
         .thinking-dot { animation: bounce 1.4s infinite ease-in-out both; width: 6px; height: 6px; background-color: #6366f1; border-radius: 50%; display: inline-block; margin: 0 1px; }
         .thinking-dot:nth-child(1) { animation-delay: -0.32s; }
@@ -58,7 +63,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // VARIABLE GLOBAL PARA LA LLAVE (SE LLENA DESDE FIREBASE)
         let GEMINI_API_KEY = null;
 
         const initialUsers = [
@@ -67,7 +71,6 @@
             { id: '1030', name: 'Carlos Gomez', aportes: 1000000, deuda: 1200000, multas: 0 }
         ];
 
-        // ESTATUTOS COMPLETOS (V6.0)
         const statutesDatabase = [
             { id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad', category: 'General', keywords: 'meta objetivo proposito fin constitucion crear fondo', content: 'El presente Fondo tiene como finalidad fomentar el hábito del ahorro, fortalecer los vínculos de solidaridad familiar y brindar apoyo a todos sus asociados.' },
             { id: 'art2', article: 'ARTÍCULO 2', title: 'Domicilio', category: 'General', keywords: 'ubicacion lugar ciudad bogota', content: 'El Fondo tendrá como domicilio la ciudad de Bogota D.C. y su creación rige a partir del 1 de octubre del 2001.' },
@@ -102,26 +105,59 @@
 
         const f = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
         const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const formatText = (text) => text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // INICIALIZACIÓN: CARGAR SOCIOS Y AHORA TAMBIÉN LA LLAVE SECRETA
+        // --- MEJORA: FORMATO AVANZADO CON TABLAS ---
+        const formatText = (text) => {
+            // 1. Detectar tablas Markdown y convertirlas a HTML
+            let formatted = text;
+            const tableRegex = /((?:\|.*\|(?:\r?\n|$))+)/g;
+            
+            formatted = formatted.replace(tableRegex, (match) => {
+                const rows = match.trim().split('\n');
+                let html = '<table class="chat-table">';
+                
+                rows.forEach((row, index) => {
+                    if (row.includes('---')) return; // Ignorar separadores markdown
+                    const cols = row.split('|').filter(c => c.trim() !== '');
+                    
+                    html += '<tr>';
+                    cols.forEach(col => {
+                        // Si es la primera fila o parece encabezado, usar TH, si no TD
+                        if (index === 0) html += `<th>${col.trim()}</th>`;
+                        else html += `<td>${col.trim()}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</table>';
+                return html;
+            });
+
+            // 2. Formato estándar (negritas y saltos de línea)
+            return formatted.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        };
+
+        // --- MEJORA: EXTRACTOR DE CITAS ---
+        const extractCitations = (text) => {
+            const regex = /(?:ARTÍCULO|ARTICULO)\s+(\d+)/gi;
+            const matches = [...text.matchAll(regex)];
+            if (matches.length > 0) {
+                // Eliminar duplicados y devolver solo "ARTÍCULO X"
+                const unique = [...new Set(matches.map(m => `ARTÍCULO ${m[1]}`))];
+                return unique;
+            }
+            // Si menciona "Estatutos" pero no articulo
+            if (text.toLowerCase().includes('estatuto')) return ['Estatutos'];
+            return [];
+        };
+
         async function initSystem() {
             try {
-                // 1. CARGAR LA LLAVE API DESDE LA BÓVEDA DE FIREBASE (NO DEL CÓDIGO)
-                console.log("Buscando llave en bóveda...");
                 const keyDoc = await db.collection("configuracion").doc("secretos").get();
-                if (keyDoc.exists) {
-                    GEMINI_API_KEY = keyDoc.data().gemini_key;
-                    console.log("Llave cargada de forma segura.");
-                } else {
-                    console.error("No se encontró la llave en Firebase (configuracion/secretos).");
-                }
-
-                // 2. CARGAR SOCIOS (Igual que antes)
+                if (keyDoc.exists) GEMINI_API_KEY = keyDoc.data().gemini_key;
+                
                 const doc = await db.collection("socios").doc("1010").get();
-                if (doc.exists) { 
-                    renderApp(); 
-                } else {
+                if (doc.exists) { renderApp(); } 
+                else {
                     const batch = db.batch();
                     initialUsers.forEach(user => batch.set(db.collection("socios").doc(user.id), user));
                     await batch.commit();
@@ -213,23 +249,29 @@
             const res = await generateAIResponse(q);
             document.getElementById(loadingId)?.remove();
 
+            // Lógica para mostrar las citas dinámicas (ARTÍCULO X) en lugar del nombre del modelo
+            const citationBadges = res.citations.length > 0 
+                ? `<div class="flex gap-2 flex-wrap mt-2">${res.citations.map(c => `<span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 uppercase">${c}</span>`).join('')}</div>` 
+                : '';
+
             history.innerHTML += `
                 <div class="flex gap-4 slide-up">
                     <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div>
                     <div class="space-y-2 max-w-[85%] sm:max-w-[70%]">
-                        <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-700 chat-content leading-relaxed text-base">${formatText(res.text)}</div>
-                        ${res.citations.length > 0 ? `<div class="flex gap-2 flex-wrap">${res.citations.map(c => `<span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 uppercase">${c}</span>`).join('')}</div>` : ''}
+                        <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-700 chat-content leading-relaxed text-base">
+                            ${formatText(res.text)}
+                            ${citationBadges}
+                        </div>
                     </div>
                 </div>`;
             history.scrollTop = history.scrollHeight;
             lucide.createIcons();
         };
 
-        // CEREBRO GEMINI (USANDO LLAVE DESDE FIREBASE)
         async function generateAIResponse(query) {
-            let aiResult = null;
+            let aiResponseText = "";
+            let citations = [];
 
-            // VERIFICAMOS SI LA LLAVE SE CARGÓ CORRECTAMENTE DESDE FIREBASE
             if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
                 const contextData = `
                     DATOS USUARIO:
@@ -240,48 +282,49 @@
                     ESTATUTOS:
                     ${statutesDatabase.map(s => s.content).join(" ")}
                 `;
-                const prompt = `Como experto del Fondo Famipardo, usa estos datos: ${contextData}. Responde a: "${query}". (Si es cálculo de préstamo, resta deuda a aportes).`;
+                
+                // --- MEJORA: PROMPT REFINADO PARA ELIMINAR SALUDOS Y TABLAS ROTAS ---
+                const prompt = `Actúa como asesor del Fondo Famipardo. Responde a: "${query}".
+                Usa estos datos: ${contextData}.
+                
+                REGLAS DE RESPUESTA:
+                1. Sé directo y conciso. NO uses saludos formales al final (como "Atentamente").
+                2. Si usas tablas, usa formato Markdown estándar (| col | col |).
+                3. Menciona siempre qué ARTÍCULO usas para responder.
+                4. Si es cálculo de préstamo, muestra: Cupo Total, Menos Deuda, Igual Disponible.`;
 
-                // 1. INTENTO CON GEMINI 2.5
                 try {
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const d = await r.json();
-                    
                     if (d.candidates) {
-                        aiResult = { text: d.candidates[0].content.parts[0].text, citations: ['Gemini 2.5'] };
+                        aiResponseText = d.candidates[0].content.parts[0].text;
+                        citations = extractCitations(aiResponseText); // Extraemos los artículos automáticamente
                     }
-                } catch (e) { console.error("Fallo Gemini 2.5"); }
+                } catch (e) { console.error("Fallo Gemini 2.5", e); }
+            }
 
-                // 2. FALLBACK A GEMINI 2.0
-                if (!aiResult) {
-                    try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
-                            method: "POST", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                        });
-                        const d = await r.json();
-                        if (d.candidates) aiResult = { text: d.candidates[0].content.parts[0].text, citations: ['Gemini 2.0'] };
-                    } catch (e) { console.error("Fallo Gemini 2.0"); }
+            if (!aiResponseText) {
+                // Fallback local
+                const qClean = normalizeText(query);
+                if (qClean.includes('prestamo') || qClean.includes('cupo')) {
+                    const cupo = currentUser.aportes - currentUser.deuda;
+                    aiResponseText = `💰 **Cupo Disponible (Modo Local)**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Tus aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`;
+                    citations = ['Cálculo Local'];
+                } else {
+                    const results = searchStatutes(query);
+                    if (results.length > 0) {
+                        aiResponseText = `• Según **${results[0].article}**: "${results[0].content}"`;
+                        citations = [results[0].title];
+                    } else {
+                        aiResponseText = "No encontré información exacta.";
+                    }
                 }
-            } else {
-                console.error("ERROR: No hay llave API cargada. Revisa Firebase.");
             }
 
-            if (aiResult) return aiResult;
-
-            // FALLBACK FINAL: BUSCADOR LOCAL
-            const qClean = normalizeText(query);
-            if (qClean.includes('prestamo') || qClean.includes('cupo') || qClean.includes('pedir')) {
-                const cupo = currentUser.aportes - currentUser.deuda;
-                return { text: `💰 **Cupo Disponible (Modo Local)**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Tus aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`, citations: ['Cálculo Local'] };
-            }
-            const results = searchStatutes(query);
-            if (results.length > 0) return { text: `• Según **${results[0].article}**: "${results[0].content}"`, citations: [results[0].title] };
-            
-            return { text: "Lo siento, no pude conectar con mi cerebro en la nube (Error de Llave) y no encontré respuesta en los documentos locales.", citations: [] };
+            return { text: aiResponseText, citations: citations };
         }
 
         function searchStatutes(query) {
@@ -290,10 +333,7 @@
             const results = statutesDatabase.map(i => {
                 let score = 0;
                 const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
-                terms.forEach(t => { 
-                    if (text.includes(t)) score += 10;
-                    if (normalizeText(i.article).endsWith(t)) score += 50; 
-                });
+                terms.forEach(t => { if (text.includes(t)) score += 10; });
                 return { item: i, score };
             });
             return results.filter(r => r.score > 0).sort((a,b) => b.score - a.score).map(r => r.item);
