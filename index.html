@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V7.0 (Final & Segura)</title>
+    <title>Fondo Famipardo - V7.1 (Smart Context)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -15,9 +15,9 @@
         .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         /* Estilos Tablas del Chat */
-        .chat-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-        .chat-table th { background-color: #4f46e5; color: white; text-align: left; padding: 10px; font-weight: bold; }
-        .chat-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; background-color: #fff; }
+        .chat-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.85em; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        .chat-table th { background-color: #4f46e5; color: white; text-align: left; padding: 8px; font-weight: bold; }
+        .chat-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; background-color: #fff; }
         .chat-table tr:last-child td { border-bottom: none; }
         .chat-content strong { font-weight: 700; color: #312e81; }
         .thinking-dot { animation: bounce 1.4s infinite ease-in-out both; width: 6px; height: 6px; background-color: #6366f1; border-radius: 50%; display: inline-block; margin: 0 1px; }
@@ -51,7 +51,6 @@
     <div id="bottom-nav" class="hidden h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 flex-shrink-0 z-50"></div>
 
     <script>
-        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDLxG35sVR6zs8yyrkNL4mOVQMuGeavM9U",
             authDomain: "fondo-famipardo.firebaseapp.com",
@@ -64,21 +63,17 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // VARIABLES DE ESTADO (Se llenan desde la nube)
         let GEMINI_API_KEY = null;
         let statutesDatabase = []; 
         let currentUser = null;
         let currentView = 'login';
         let activeCat = 'General';
 
-        // UTILIDADES
         const f = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
         const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
-        // FORMATO DE TEXTO (Tablas y Negritas)
         const formatText = (text) => {
             let formatted = text;
-            // Convertir tablas Markdown a HTML
             const tableRegex = /((?:\|.*\|(?:\r?\n|$))+)/g;
             formatted = formatted.replace(tableRegex, (match) => {
                 const rows = match.trim().split('\n');
@@ -96,51 +91,43 @@
                 html += '</table>';
                 return html;
             });
-            // Negritas y saltos de línea
             return formatted.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         };
 
+        // MEJORA: Extracción de citas más robusta
         const extractCitations = (text) => {
+            // Busca "ARTÍCULO X" o "ARTICULO X" (mayúsculas o minúsculas)
             const regex = /(?:ARTÍCULO|ARTICULO)\s+(\d+)/gi;
             const matches = [...text.matchAll(regex)];
-            if (matches.length > 0) return [...new Set(matches.map(m => `ARTÍCULO ${m[1]}`))];
-            if (text.toLowerCase().includes('estatuto')) return ['Estatutos'];
-            return [];
+            
+            if (matches.length > 0) {
+                // Elimina duplicados y devuelve etiquetas limpias
+                return [...new Set(matches.map(m => `ARTÍCULO ${m[1]}`))];
+            }
+            return []; // Ya no devolvemos "Estatutos" genérico si no hay número
         };
 
-        // --- SISTEMA DE INICIO (CARGA DESDE LA NUBE) ---
         async function initSystem() {
             try {
-                // 1. Obtener Llave API Segura
                 const keyDoc = await db.collection("configuracion").doc("secretos").get();
-                if (keyDoc.exists) {
-                    GEMINI_API_KEY = keyDoc.data().gemini_key;
-                } else {
-                    console.error("Falta la llave en Firebase (configuracion/secretos)");
-                }
+                if (keyDoc.exists) GEMINI_API_KEY = keyDoc.data().gemini_key;
 
-                // 2. Descargar Estatutos (Ya no están en el código)
-                console.log("Sincronizando estatutos...");
                 const snapshot = await db.collection('estatutos').get();
                 if (!snapshot.empty) {
                     statutesDatabase = snapshot.docs.map(doc => doc.data());
-                    // Ordenar por ID para que salgan en orden (art1, art2...)
+                    // Ordenar correctamente: Art1, Art2, Art10...
                     statutesDatabase.sort((a, b) => {
-                        const numA = parseInt(a.id.replace(/\D/g, '')) || 0;
-                        const numB = parseInt(b.id.replace(/\D/g, '')) || 0;
+                        const numA = parseInt(a.article.replace(/\D/g, '')) || 999;
+                        const numB = parseInt(b.article.replace(/\D/g, '')) || 999;
                         return numA - numB;
                     });
                 }
-
-                // Renderizar Login
                 renderApp();
-
             } catch (err) {
                 document.getElementById('app-container').innerHTML = `<div class="p-8 text-center text-red-600 font-bold">Error de Conexión: ${err.message}</div>`;
             }
         }
 
-        // --- GESTIÓN DE USUARIOS (LOGIN EN LA NUBE) ---
         window.login = function() {
             const id = document.getElementById('login-id').value.trim();
             const btn = document.getElementById('login-btn');
@@ -155,7 +142,7 @@
                     currentUser = doc.data(); 
                     switchView('dashboard'); 
                 } else { 
-                    alert('Usuario no encontrado en la base de datos.'); 
+                    alert('Usuario no encontrado.'); 
                     btn.disabled = false; 
                     btn.textContent = 'Ingresar'; 
                 }
@@ -170,7 +157,6 @@
         window.switchView = function(viewId) { currentView = viewId; renderApp(); }
         window.navigateToCategory = function(cat) { activeCat = cat; switchView('navigator'); };
 
-        // --- RENDERIZADO DE VISTAS ---
         function renderApp() {
             const container = document.getElementById('app-container');
             const bottomNav = document.getElementById('bottom-nav');
@@ -206,18 +192,17 @@
         }
 
         function renderOracle(c) {
-            c.innerHTML = `<div class="h-full flex flex-col bg-white"><div id="chat-history" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%] sm:max-w-[70%]">Hola ${currentUser.name.split(' ')[0]}. Soy tu asesor experto. Pregúntame sobre tus saldos o los estatutos.</div></div></div><div class="p-4 sm:p-6 bg-white border-t border-slate-100 flex-shrink-0"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Cuánto puedo pedir prestado?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg hover:scale-105 transition-transform"><i data-lucide="send" width="20"></i></button></form></div></div>`;
+            c.innerHTML = `<div class="h-full flex flex-col bg-white"><div id="chat-history" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%] sm:max-w-[70%]">Hola ${currentUser.name.split(' ')[0]}. Pregúntame por tu saldo, deudas o sobre los estatutos.</div></div></div><div class="p-4 sm:p-6 bg-white border-t border-slate-100 flex-shrink-0"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Qué dice el Artículo 16?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg hover:scale-105 transition-transform"><i data-lucide="send" width="20"></i></button></form></div></div>`;
         }
 
         function renderNavigator(c) {
             const filtered = statutesDatabase.filter(s => s.category === activeCat);
             const cats = ['General', 'Ahorro', 'Ingreso', 'Retiro', 'Préstamos', 'Legal', 'Sanciones', 'Gobierno'];
-            c.innerHTML = `<div class="h-full flex bg-white fade-in"><div class="w-20 sm:w-64 bg-slate-900 text-slate-400 flex flex-col border-r border-slate-800 flex-shrink-0"><div class="p-4 sm:p-6 font-bold text-white tracking-widest text-xs sm:text-sm uppercase mb-2">Capítulos</div><div class="flex-1 overflow-y-auto px-2 space-y-1">${cats.map(cat => `<button onclick="navigateToCategory('${cat}')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 ${activeCat===cat ? 'bg-indigo-600 text-white shadow-lg' : ''}"><i data-lucide="${getIconForCat(cat)}" width="18"></i><span class="hidden sm:inline text-sm font-medium">${cat}</span></button>`).join('')}</div></div><div class="flex-1 flex flex-col bg-slate-50 h-full overflow-hidden"><div class="flex-1 overflow-y-auto p-4 sm:p-8"><div class="max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-slate-800 mb-6 flex items-center gap-3"><i data-lucide="${getIconForCat(activeCat)}" class="text-indigo-600"></i> ${activeCat}</h1><div class="space-y-4">${filtered.length > 0 ? filtered.map(s => `<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all"><h3 class="font-bold text-indigo-700 text-sm uppercase mb-2 flex items-center gap-2">${s.article} ${s.id.startsWith('rol')?'<span class="bg-purple-100 text-purple-700 px-2 rounded-full text-[10px]">Rol</span>':''}</h3><p class="text-slate-600 leading-relaxed">${s.content}</p></div>`).join('') : `<div class="p-10 text-center"><div class="animate-spin inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full mb-4"></div><p class="text-slate-400">Descargando estatutos...</p></div>`}</div></div></div></div></div>`;
+            c.innerHTML = `<div class="h-full flex bg-white fade-in"><div class="w-20 sm:w-64 bg-slate-900 text-slate-400 flex flex-col border-r border-slate-800 flex-shrink-0"><div class="p-4 sm:p-6 font-bold text-white tracking-widest text-xs sm:text-sm uppercase mb-2">Capítulos</div><div class="flex-1 overflow-y-auto px-2 space-y-1">${cats.map(cat => `<button onclick="navigateToCategory('${cat}')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 ${activeCat===cat ? 'bg-indigo-600 text-white shadow-lg' : ''}"><i data-lucide="${getIconForCat(cat)}" width="18"></i><span class="hidden sm:inline text-sm font-medium">${cat}</span></button>`).join('')}</div></div><div class="flex-1 flex flex-col bg-slate-50 h-full overflow-hidden"><div class="flex-1 overflow-y-auto p-4 sm:p-8"><div class="max-w-4xl mx-auto"><h1 class="text-3xl font-bold text-slate-800 mb-6 flex items-center gap-3"><i data-lucide="${getIconForCat(activeCat)}" class="text-indigo-600"></i> ${activeCat}</h1><div class="space-y-4">${filtered.length > 0 ? filtered.map(s => `<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all"><h3 class="font-bold text-indigo-700 text-sm uppercase mb-2 flex items-center gap-2">${s.article} ${s.id.startsWith('rol')?'<span class="bg-purple-100 text-purple-700 px-2 rounded-full text-[10px]">Rol</span>':''}</h3><p class="text-slate-600 leading-relaxed">${s.content}</p></div>`).join('') : '<div class="text-center text-slate-400 py-10">Cargando estatutos de la nube...</div>'}</div></div></div></div></div>`;
         }
         function getIconForCat(cat) { const icons = { 'General': 'book-open', 'Ahorro': 'piggy-bank', 'Ingreso': 'user-plus', 'Retiro': 'log-out', 'Préstamos': 'credit-card', 'Legal': 'scale', 'Sanciones': 'shield-alert', 'Gobierno': 'users' }; return icons[cat] || 'file-text'; }
         function renderBottomNav() { const nav = document.getElementById('bottom-nav'); const items = [{ id: 'dashboard', icon: 'layout-grid', label: 'Inicio' }, { id: 'oracle', icon: 'message-square', label: 'Chat' }, { id: 'navigator', icon: 'book-open', label: 'Docs' }]; nav.innerHTML = items.map(i => `<button onclick="switchView('${i.id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 ${currentView === i.id ? 'text-indigo-600' : 'text-slate-400'}"><i data-lucide="${i.icon}" class="${currentView === i.id ? 'fill-indigo-100' : ''}"></i><span class="text-[10px] font-medium">${i.label}</span></button>`).join(''); }
 
-        // --- CEREBRO IA ---
         window.handleChat = async function(e) {
             e.preventDefault();
             const input = document.getElementById('chat-input');
@@ -259,28 +244,35 @@
             let citations = [];
 
             if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
-                // Pasamos los estatutos DESCARGADOS
+                
+                // MEJORA 1: Incluir los títulos de los artículos para que la IA sepa qué son
                 const statutesText = statutesDatabase.length > 0 
-                    ? statutesDatabase.map(s => s.content).join(" ") 
+                    ? statutesDatabase.map(s => `[${s.article}]: ${s.content}`).join("\n\n") 
                     : "No hay estatutos disponibles.";
 
+                // MEJORA 2: Incluir las MULTAS en los datos del usuario
                 const contextData = `
                     DATOS USUARIO:
                     - Nombre: ${currentUser.name}
                     - Aportes: ${f(currentUser.aportes)}
                     - Deuda: ${f(currentUser.deuda)}
-                    - Cupo Disponible para pedir: ${f(currentUser.aportes - currentUser.deuda)}
-                    ESTATUTOS:
+                    - Multas: ${f(currentUser.multas)}  <-- AGREGADO AQUÍ
+                    - Cupo Disponible: ${f(currentUser.aportes - currentUser.deuda)}
+                    
+                    ESTATUTOS DEL FONDO:
                     ${statutesText}
                 `;
                 
-                const prompt = `Actúa como asesor del Fondo Famipardo. Responde a: "${query}".
-                Usa estos datos: ${contextData}.
+                // MEJORA 3: Prompt más estricto con las referencias
+                const prompt = `Actúa como asesor experto del Fondo Famipardo. Responde a: "${query}".
+                Usa estrictamente estos datos:
+                ${contextData}
+                
                 REGLAS:
-                1. Sé directo. Sin saludos finales (Atentamente).
-                2. Tablas en Markdown estándar.
-                3. Menciona el ARTÍCULO usado.
-                4. Si preguntan cupo, usa la fórmula: Cupo = Aportes - Deuda.`;
+                1. Sé directo y breve.
+                2. Si citas un artículo, DEBES escribir "Según el ARTÍCULO X...".
+                3. Si el usuario pregunta por sus multas, revisa el campo "Multas" en sus datos.
+                4. Usa tablas Markdown si hay varios datos.`;
 
                 try {
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
@@ -296,16 +288,20 @@
             }
 
             if (!aiResponseText) {
+                // Fallback Local Mejorado
                 const qClean = normalizeText(query);
                 if (qClean.includes('prestamo') || qClean.includes('cupo')) {
                     const cupo = currentUser.aportes - currentUser.deuda;
-                    aiResponseText = `💰 **Cupo Disponible (Modo Local)**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Tus aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`;
+                    aiResponseText = `💰 **Cupo Disponible**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`;
                     citations = ['Cálculo Local'];
+                } else if (qClean.includes('multa')) {
+                     aiResponseText = `👮 **Estado de Multas**\n\nActualmente tienes multas por valor de: **${f(currentUser.multas)}**.`;
+                     citations = ['Base de Datos'];
                 } else {
                     const results = searchStatutes(query);
                     if (results.length > 0) {
                         aiResponseText = `• Según **${results[0].article}**: "${results[0].content}"`;
-                        citations = [results[0].title];
+                        citations = [results[0].article]; // Ahora cita el artículo exacto
                     } else {
                         aiResponseText = "No encontré información exacta.";
                     }
@@ -321,6 +317,8 @@
                 let score = 0;
                 const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
                 terms.forEach(t => { if (text.includes(t)) score += 10; });
+                // Bonificación si busca "articulo 16" explícitamente
+                if (q.includes(normalizeText(i.article))) score += 100;
                 return { item: i, score };
             });
             return results.filter(r => r.score > 0).sort((a,b) => b.score - a.score).map(r => r.item);
