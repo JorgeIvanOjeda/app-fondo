@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V6.0 (Estatutos Completos)</title>
+    <title>Fondo Famipardo - V6.1 (Secure Vault)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -58,10 +58,8 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // =================================================================
-        // ⚠️ PEGA TU LLAVE QUE YA FUNCIONA AQUÍ ⚠️
-        // =================================================================
-        const GEMINI_API_KEY = "AIzaSyCMBtUOpS7csvJFXNCqRAFq4yfD9PcX2VQ"; 
+        // VARIABLE GLOBAL PARA LA LLAVE (SE LLENA DESDE FIREBASE)
+        let GEMINI_API_KEY = null;
 
         const initialUsers = [
             { id: '1010', name: 'Juan Perez', aportes: 2000000, deuda: 500000, multas: 0 },
@@ -69,7 +67,7 @@
             { id: '1030', name: 'Carlos Gomez', aportes: 1000000, deuda: 1200000, multas: 0 }
         ];
 
-        // BASE DE DATOS DE ESTATUTOS COMPLETA (Actualizada V6.0)
+        // ESTATUTOS COMPLETOS (V6.0)
         const statutesDatabase = [
             { id: 'art1', article: 'ARTÍCULO 1', title: 'Finalidad', category: 'General', keywords: 'meta objetivo proposito fin constitucion crear fondo', content: 'El presente Fondo tiene como finalidad fomentar el hábito del ahorro, fortalecer los vínculos de solidaridad familiar y brindar apoyo a todos sus asociados.' },
             { id: 'art2', article: 'ARTÍCULO 2', title: 'Domicilio', category: 'General', keywords: 'ubicacion lugar ciudad bogota', content: 'El Fondo tendrá como domicilio la ciudad de Bogota D.C. y su creación rige a partir del 1 de octubre del 2001.' },
@@ -106,17 +104,32 @@
         const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const formatText = (text) => text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        function initSystem() {
-            db.collection("socios").doc("1010").get().then((doc) => {
-                if (doc.exists) { console.log("Cloud Connected."); renderApp(); } 
-                else {
+        // INICIALIZACIÓN: CARGAR SOCIOS Y AHORA TAMBIÉN LA LLAVE SECRETA
+        async function initSystem() {
+            try {
+                // 1. CARGAR LA LLAVE API DESDE LA BÓVEDA DE FIREBASE (NO DEL CÓDIGO)
+                console.log("Buscando llave en bóveda...");
+                const keyDoc = await db.collection("configuracion").doc("secretos").get();
+                if (keyDoc.exists) {
+                    GEMINI_API_KEY = keyDoc.data().gemini_key;
+                    console.log("Llave cargada de forma segura.");
+                } else {
+                    console.error("No se encontró la llave en Firebase (configuracion/secretos).");
+                }
+
+                // 2. CARGAR SOCIOS (Igual que antes)
+                const doc = await db.collection("socios").doc("1010").get();
+                if (doc.exists) { 
+                    renderApp(); 
+                } else {
                     const batch = db.batch();
                     initialUsers.forEach(user => batch.set(db.collection("socios").doc(user.id), user));
-                    batch.commit().then(() => renderApp());
+                    await batch.commit();
+                    renderApp();
                 }
-            }).catch(err => {
-                document.getElementById('app-container').innerHTML = `<div class="p-8 text-center text-red-600 font-bold">Error: ${err.message}</div>`;
-            });
+            } catch (err) {
+                document.getElementById('app-container').innerHTML = `<div class="p-8 text-center text-red-600 font-bold">Error de Conexión: ${err.message}</div>`;
+            }
         }
 
         window.login = function() {
@@ -212,10 +225,11 @@
             lucide.createIcons();
         };
 
-        // CEREBRO GEMINI ACTUALIZADO (2026)
+        // CEREBRO GEMINI (USANDO LLAVE DESDE FIREBASE)
         async function generateAIResponse(query) {
             let aiResult = null;
 
+            // VERIFICAMOS SI LA LLAVE SE CARGÓ CORRECTAMENTE DESDE FIREBASE
             if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
                 const contextData = `
                     DATOS USUARIO:
@@ -228,40 +242,37 @@
                 `;
                 const prompt = `Como experto del Fondo Famipardo, usa estos datos: ${contextData}. Responde a: "${query}". (Si es cálculo de préstamo, resta deuda a aportes).`;
 
-                // 1. INTENTO CON GEMINI 2.5 FLASH PREVIEW (El mejor)
+                // 1. INTENTO CON GEMINI 2.5
                 try {
-                    console.log("Intentando Gemini 2.5...");
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const d = await r.json();
                     
-                    if (d.error) {
-                         console.error("Fallo Gemini 2.5:", d.error.message);
-                    } else if (d.candidates) {
+                    if (d.candidates) {
                         aiResult = { text: d.candidates[0].content.parts[0].text, citations: ['Gemini 2.5'] };
                     }
-                } catch (e) { console.error("Fallo Red 2.5"); }
+                } catch (e) { console.error("Fallo Gemini 2.5"); }
 
-                // 2. FALLBACK A GEMINI 2.0 FLASH EXP (Si el primero falla)
+                // 2. FALLBACK A GEMINI 2.0
                 if (!aiResult) {
                     try {
-                        console.log("Intentando Gemini 2.0...");
                         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
                             method: "POST", headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                         });
                         const d = await r.json();
                         if (d.candidates) aiResult = { text: d.candidates[0].content.parts[0].text, citations: ['Gemini 2.0'] };
-                    } catch (e) { console.error("Fallo Red 2.0"); }
+                    } catch (e) { console.error("Fallo Gemini 2.0"); }
                 }
+            } else {
+                console.error("ERROR: No hay llave API cargada. Revisa Firebase.");
             }
 
             if (aiResult) return aiResult;
 
             // FALLBACK FINAL: BUSCADOR LOCAL
-            console.log("Usando Fallback Local...");
             const qClean = normalizeText(query);
             if (qClean.includes('prestamo') || qClean.includes('cupo') || qClean.includes('pedir')) {
                 const cupo = currentUser.aportes - currentUser.deuda;
@@ -270,7 +281,7 @@
             const results = searchStatutes(query);
             if (results.length > 0) return { text: `• Según **${results[0].article}**: "${results[0].content}"`, citations: [results[0].title] };
             
-            return { text: "No pude conectar con la IA y no encontré información local exacta. Intenta reformular.", citations: [] };
+            return { text: "Lo siento, no pude conectar con mi cerebro en la nube (Error de Llave) y no encontré respuesta en los documentos locales.", citations: [] };
         }
 
         function searchStatutes(query) {
