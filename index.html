@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fondo Famipardo - V7.1 (Smart Context)</title>
+    <title>Fondo Famipardo - V7.2 (Hybrid Core)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -94,17 +94,11 @@
             return formatted.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         };
 
-        // MEJORA: Extracción de citas más robusta
         const extractCitations = (text) => {
-            // Busca "ARTÍCULO X" o "ARTICULO X" (mayúsculas o minúsculas)
             const regex = /(?:ARTÍCULO|ARTICULO)\s+(\d+)/gi;
             const matches = [...text.matchAll(regex)];
-            
-            if (matches.length > 0) {
-                // Elimina duplicados y devuelve etiquetas limpias
-                return [...new Set(matches.map(m => `ARTÍCULO ${m[1]}`))];
-            }
-            return []; // Ya no devolvemos "Estatutos" genérico si no hay número
+            if (matches.length > 0) return [...new Set(matches.map(m => `ARTÍCULO ${m[1]}`))];
+            return []; 
         };
 
         async function initSystem() {
@@ -115,7 +109,6 @@
                 const snapshot = await db.collection('estatutos').get();
                 if (!snapshot.empty) {
                     statutesDatabase = snapshot.docs.map(doc => doc.data());
-                    // Ordenar correctamente: Art1, Art2, Art10...
                     statutesDatabase.sort((a, b) => {
                         const numA = parseInt(a.article.replace(/\D/g, '')) || 999;
                         const numB = parseInt(b.article.replace(/\D/g, '')) || 999;
@@ -182,7 +175,7 @@
         }
 
         function renderLogin(c) {
-            c.innerHTML = `<div class="w-full max-w-sm p-6 fade-in"><div class="text-center space-y-6"><div class="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl"><i data-lucide="cloud" class="text-white" width="40"></i></div><div><h1 class="text-3xl font-bold text-slate-800">Bienvenido al Fondofamipardo</h1><p class="text-slate-500 mt-2">Acceso Seguro</p></div><div class="bg-white p-6 rounded-2xl shadow-lg border space-y-4 text-left"><div><label class="text-xs font-bold text-slate-400 uppercase ml-1">Cédula</label><input type="number" id="login-id" class="w-full bg-slate-50 border rounded-xl px-4 py-3 mt-1 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ingresa tu cédula"></div><button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg">Ingresar</button></div></div></div>`;
+            c.innerHTML = `<div class="w-full max-w-sm p-6 fade-in"><div class="text-center space-y-6"><div class="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl"><i data-lucide="cloud" class="text-white" width="40"></i></div><div><h1 class="text-3xl font-bold text-slate-800">Bienvenido</h1><p class="text-slate-500 mt-2">Acceso Seguro Famipardo</p></div><div class="bg-white p-6 rounded-2xl shadow-lg border space-y-4 text-left"><div><label class="text-xs font-bold text-slate-400 uppercase ml-1">Cédula</label><input type="number" id="login-id" class="w-full bg-slate-50 border rounded-xl px-4 py-3 mt-1 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ej: 1010"></div><button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg">Ingresar</button></div></div></div>`;
         }
 
         function renderDashboard(c) {
@@ -192,7 +185,7 @@
         }
 
         function renderOracle(c) {
-            c.innerHTML = `<div class="h-full flex flex-col bg-white"><div id="chat-history" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%] sm:max-w-[70%]">Hola ${currentUser.name.split(' ')[0]}. Pregúntame por tu saldo, deudas o sobre los estatutos.</div></div></div><div class="p-4 sm:p-6 bg-white border-t border-slate-100 flex-shrink-0"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Qué dice el Artículo 16?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg hover:scale-105 transition-transform"><i data-lucide="send" width="20"></i></button></form></div></div>`;
+            c.innerHTML = `<div class="h-full flex flex-col bg-white"><div id="chat-history" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%] sm:max-w-[70%]">Hola ${currentUser.name.split(' ')[0]}. Pregúntame por tu saldo, deudas o sobre los estatutos.</div></div></div><div class="p-4 sm:p-6 bg-white border-t border-slate-100 flex-shrink-0"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Cuánto debo? o buscar 'Préstamos'" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-4 text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg hover:scale-105 transition-transform"><i data-lucide="send" width="20"></i></button></form></div></div>`;
         }
 
         function renderNavigator(c) {
@@ -239,88 +232,129 @@
             lucide.createIcons();
         };
 
+        // ==========================================================
+        //  CEREBRO HÍBRIDO (IA + LÓGICA LOCAL ROBUSTA)
+        // ==========================================================
         async function generateAIResponse(query) {
             let aiResponseText = "";
             let citations = [];
 
+            // 1. INTENTO CON IA (Si hay llave)
             if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
-                
-                // MEJORA 1: Incluir los títulos de los artículos para que la IA sepa qué son
-                const statutesText = statutesDatabase.length > 0 
-                    ? statutesDatabase.map(s => `[${s.article}]: ${s.content}`).join("\n\n") 
-                    : "No hay estatutos disponibles.";
-
-                // MEJORA 2: Incluir las MULTAS en los datos del usuario
-                const contextData = `
-                    DATOS USUARIO:
-                    - Nombre: ${currentUser.name}
-                    - Aportes: ${f(currentUser.aportes)}
-                    - Deuda: ${f(currentUser.deuda)}
-                    - Multas: ${f(currentUser.multas)}  <-- AGREGADO AQUÍ
-                    - Cupo Disponible: ${f(currentUser.aportes - currentUser.deuda)}
-                    
-                    ESTATUTOS DEL FONDO:
-                    ${statutesText}
-                `;
-                
-                // MEJORA 3: Prompt más estricto con las referencias
-                const prompt = `Actúa como asesor experto del Fondo Famipardo. Responde a: "${query}".
-                Usa estrictamente estos datos:
-                ${contextData}
-                
-                REGLAS:
-                1. Sé directo y breve.
-                2. Si citas un artículo, DEBES escribir "Según el ARTÍCULO X...".
-                3. Si el usuario pregunta por sus multas, revisa el campo "Multas" en sus datos.
-                4. Usa tablas Markdown si hay varios datos.`;
-
                 try {
+                    const statutesText = statutesDatabase.length > 0 
+                        ? statutesDatabase.map(s => `[${s.article}]: ${s.content}`).join("\n\n") 
+                        : "No hay estatutos disponibles.";
+
+                    const contextData = `
+                        DATOS USUARIO:
+                        - Nombre: ${currentUser.name}
+                        - Aportes: ${f(currentUser.aportes)}
+                        - Deuda: ${f(currentUser.deuda)}
+                        - Multas: ${f(currentUser.multas)}
+                        - Cupo Disponible: ${f(currentUser.aportes - currentUser.deuda)}
+                        
+                        ESTATUTOS DEL FONDO:
+                        ${statutesText}
+                    `;
+                    
+                    const prompt = `Actúa como asesor experto del Fondo Famipardo. Responde a: "${query}".
+                    Usa estrictamente estos datos: ${contextData}
+                    REGLAS:
+                    1. Sé directo y breve.
+                    2. Si citas un artículo, DEBES escribir "Según el ARTÍCULO X...".
+                    3. Si el usuario pregunta por sus multas, revisa el campo "Multas" en sus datos.
+                    4. Usa tablas Markdown si hay varios datos.`;
+
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
+                    
+                    if (r.status === 429) throw new Error("Límite de API Excedido (429)");
+                    
                     const d = await r.json();
                     if (d.candidates) {
                         aiResponseText = d.candidates[0].content.parts[0].text;
                         citations = extractCitations(aiResponseText);
                     }
-                } catch (e) { console.error("Fallo Gemini 2.5", e); }
+                } catch (e) { 
+                    console.warn("IA no disponible (" + e.message + "). Activando modo Offline.");
+                    // Dejamos que caiga al bloque de abajo (fallback)
+                }
             }
 
+            // 2. MODO OFFLINE (Si la IA falló o no respondió)
             if (!aiResponseText) {
-                // Fallback Local Mejorado
                 const qClean = normalizeText(query);
-                if (qClean.includes('prestamo') || qClean.includes('cupo')) {
+                
+                // A. RESPUESTAS FINANCIERAS DIRECTAS (Sin IA)
+                if (qClean.match(/(?:cupo|prestar|alcanza|prestan)/i)) {
                     const cupo = currentUser.aportes - currentUser.deuda;
-                    aiResponseText = `💰 **Cupo Disponible**\n\nSegún tus aportes, puedes solicitar hasta **${f(cupo)}**.\n(Aportes: ${f(currentUser.aportes)} - Deuda: ${f(currentUser.deuda)})`;
+                    aiResponseText = `💰 **Cupo Disponible (Modo Offline)**\n\nSegún tus aportes registrados, tienes un cupo de crédito de **${f(cupo)}**.\n\n| Concepto | Valor |\n|---|---|\n| Aportes Totales | ${f(currentUser.aportes)} |\n| (-) Deuda Actual | ${f(currentUser.deuda)} |\n| **= Cupo Libre** | **${f(cupo)}** |`;
                     citations = ['Cálculo Local'];
-                } else if (qClean.includes('multa')) {
-                     aiResponseText = `👮 **Estado de Multas**\n\nActualmente tienes multas por valor de: **${f(currentUser.multas)}**.`;
-                     citations = ['Base de Datos'];
-                } else {
+                } 
+                else if (qClean.match(/(?:deuda|debo|obligacion|credito)/i)) {
+                    aiResponseText = `📉 **Estado de Deuda**\n\nActualmente tienes una deuda pendiente de **${f(currentUser.deuda)}** con el Fondo.`;
+                    citations = ['Base de Datos'];
+                }
+                else if (qClean.match(/(?:ahorro|aporte|plata|tengo)/i)) {
+                    aiResponseText = `🐷 **Tus Ahorros**\n\nHasta la fecha, has acumulado aportes por valor de **${f(currentUser.aportes)}**.`;
+                    citations = ['Base de Datos'];
+                }
+                else if (qClean.match(/(?:multa|sancion|penalidad)/i)) {
+                    if(currentUser.multas > 0) {
+                        aiResponseText = `⚠️ **Multas Pendientes**\n\nSí, tienes multas registradas por valor de **${f(currentUser.multas)}**.`;
+                    } else {
+                        aiResponseText = `✅ **¡Estás al día!**\n\nNo tienes ninguna multa o sanción registrada en el sistema.`;
+                    }
+                    citations = ['Base de Datos'];
+                }
+                else if (qClean.match(/(?:estado|resumen|balance)/i)) {
+                    const cupo = currentUser.aportes - currentUser.deuda;
+                    aiResponseText = `📊 **Resumen Financiero**\n\n| Concepto | Valor |\n|---|---|\n| Aportes | ${f(currentUser.aportes)} |\n| Deuda | ${f(currentUser.deuda)} |\n| Multas | ${f(currentUser.multas)} |\n| **Cupo Libre** | **${f(cupo)}** |`;
+                    citations = ['Base de Datos'];
+                }
+                
+                // B. BÚSQUEDA EN ESTATUTOS (Buscador de palabras clave)
+                else {
                     const results = searchStatutes(query);
                     if (results.length > 0) {
-                        aiResponseText = `• Según **${results[0].article}**: "${results[0].content}"`;
-                        citations = [results[0].article]; // Ahora cita el artículo exacto
+                        aiResponseText = `🔍 **Resultados en Estatutos (Modo Búsqueda)**\n\nNo pude conectar con la IA, pero encontré esto relacionado:\n\n`;
+                        // Mostrar los 2 mejores resultados
+                        results.slice(0, 2).forEach(r => {
+                            aiResponseText += `> **${r.article} (${r.title})**\n${r.content}\n\n`;
+                            citations.push(r.article);
+                        });
                     } else {
-                        aiResponseText = "No encontré información exacta.";
+                        aiResponseText = "⚠️ **Sin conexión.**\n\nLa IA está descansando y no encontré coincidencias exactas en los documentos. Intenta consultar tu 'saldo', 'deuda' o busca palabras clave como 'préstamos'.";
                     }
                 }
             }
+            
             return { text: aiResponseText, citations: citations };
         }
 
         function searchStatutes(query) {
             const q = normalizeText(query);
-            const terms = q.split(' ').filter(t => t.length > 2 || !isNaN(t)); 
+            const terms = q.split(' ').filter(t => t.length > 3 || !isNaN(t)); // Ignorar palabras cortas
+            
             const results = statutesDatabase.map(i => {
                 let score = 0;
                 const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
+                
+                // Coincidencia exacta de frase
+                if (text.includes(q)) score += 50;
+
+                // Coincidencia de palabras clave
                 terms.forEach(t => { if (text.includes(t)) score += 10; });
-                // Bonificación si busca "articulo 16" explícitamente
+                
+                // Prioridad si busca un artículo específico (ej: "articulo 16")
                 if (q.includes(normalizeText(i.article))) score += 100;
+
                 return { item: i, score };
             });
+            
             return results.filter(r => r.score > 0).sort((a,b) => b.score - a.score).map(r => r.item);
         }
 
@@ -328,6 +362,3 @@
     </script>
 </body>
 </html>
-
-
-
