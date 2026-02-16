@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fondo Famipardo - V7.4 (Full Layout)</title>
+    <title>Fondo Famipardo - V7.5 (Universal Nav)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Altura dinámica real para móviles */
+        /* Altura dinámica real para móviles y PC */
         body { height: 100vh; height: 100dvh; } 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -31,11 +31,11 @@
 <body class="bg-slate-50 font-sans text-slate-800 flex flex-col overflow-hidden">
 
     <nav class="bg-slate-900 text-white p-3 flex items-center justify-between shadow-lg z-50 flex-shrink-0 h-14">
-        <div class="flex items-center gap-3 px-2">
+        <div class="flex items-center gap-3 px-2 md:px-6">
             <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white">F</div>
             <span class="font-bold text-sm tracking-wide text-slate-200">FONDO <span class="text-indigo-400">FAMIPARDO</span></span>
         </div>
-        <div id="user-menu" class="hidden flex items-center gap-4 px-2">
+        <div id="user-menu" class="hidden flex items-center gap-4 px-2 md:px-6">
             <span id="user-name-display" class="text-xs font-medium text-slate-400 hidden sm:block"></span>
             <button onclick="logout()" class="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors" title="Cerrar Sesión">
                 <i data-lucide="log-out" width="18"></i>
@@ -43,14 +43,14 @@
         </div>
     </nav>
 
-    <main id="app-container" class="flex-1 overflow-hidden relative w-full h-full flex flex-col items-center justify-center pb-16 md:pb-0">
+    <main id="app-container" class="flex-1 overflow-hidden relative w-full h-full flex flex-col items-center justify-center pb-16">
         <div class="text-center space-y-4 fade-in">
             <div class="animate-spin text-indigo-600 mx-auto"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>
             <div id="loading-text" class="text-indigo-600 font-bold animate-pulse">Conectando con la Nube...</div>
         </div>
     </main>
 
-    <div id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:hidden"></div>
+    <div id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex justify-around items-center px-2 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"></div>
 
     <script>
         const firebaseConfig = {
@@ -162,14 +162,13 @@
                 bottomNav.classList.add('hidden');
                 userMenu.classList.add('hidden');
                 container.classList.remove('justify-start'); container.classList.add('justify-center');
-                container.classList.remove('pb-16', 'md:pb-0');
+                container.classList.remove('pb-16'); // Quitar margen del menú en login
                 renderLogin(container);
             } else {
                 bottomNav.classList.remove('hidden');
                 userMenu.classList.remove('hidden');
                 container.classList.add('justify-start'); container.classList.remove('justify-center');
-                // IMPORTANTE: Padding solo en móvil
-                container.classList.add('pb-16', 'md:pb-0');
+                container.classList.add('pb-16'); // Activar margen para que nada quede detrás del menú
                 
                 if(currentUser) userName.textContent = currentUser.name;
                 renderBottomNav();
@@ -188,18 +187,17 @@
         function renderDashboard(c) {
             const cupo = (currentUser.aportes * 1) - currentUser.deuda;
             const uso = Math.min((currentUser.deuda / currentUser.aportes) * 100, 100);
-            c.innerHTML = `<div class="w-full h-full overflow-y-auto bg-slate-50 p-4 fade-in"><div class="max-w-4xl mx-auto space-y-6"><div class="flex justify-between items-end"><div><h2 class="text-2xl font-bold text-slate-800">Hola, ${currentUser.name.split(' ')[0]} 👋</h2><p class="text-slate-500 text-sm">Resumen financiero</p></div></div><div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden"><div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div><div class="relative z-10"><div class="flex justify-between items-start mb-8"><div><p class="text-indigo-200 text-xs font-bold uppercase mb-1">Cupo Disponible</p><h3 class="text-4xl font-bold tracking-tight">${f(cupo)}</h3></div><div class="bg-white/20 p-3 rounded-2xl backdrop-blur-sm"><i data-lucide="wallet" class="text-white" width="24" height="24"></i></div></div><div class="space-y-2"><div class="flex justify-between text-xs text-indigo-100 font-medium"><span>Uso del crédito</span><span>${Math.round(uso)}%</span></div><div class="h-2 bg-black/20 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width: ${uso}%"></div></div></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center"><div class="flex items-center gap-2 mb-2 text-slate-400"><i data-lucide="piggy-bank" width="18"></i><span class="text-xs font-bold uppercase">Aportes</span></div><p class="text-3xl font-bold text-slate-800">${f(currentUser.aportes)}</p></div><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center"><div class="flex items-center gap-2 mb-2 text-slate-400"><i data-lucide="trending-down" width="18"></i><span class="text-xs font-bold uppercase">Deuda Actual</span></div><p class="text-3xl font-bold text-slate-800">${f(currentUser.deuda)}</p></div></div>${currentUser.multas > 0 ? `<div class="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start gap-4"><div class="bg-red-100 p-2 rounded-full text-red-600 shrink-0"><i data-lucide="alert-circle" width="20"></i></div><div><h4 class="font-bold text-red-800 text-sm">Multa Pendiente</h4><p class="text-xs text-red-600 mt-1">Sanción registrada: <strong>${f(currentUser.multas)}</strong>.</p></div></div>` : ''}<div><h3 class="text-sm font-bold text-slate-400 uppercase mb-3 tracking-wider">Accesos Rápidos</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><button onclick="navigateToCategory('Préstamos')" class="bg-white p-5 rounded-2xl text-left border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group"><div class="bg-green-50 text-green-600 p-3 rounded-xl"><i data-lucide="credit-card"></i></div><div><p class="font-bold text-slate-700">Reglamento de Créditos</p><p class="text-xs text-slate-400">Tasas y condiciones</p></div></button><button onclick="navigateToCategory('Gobierno')" class="bg-white p-5 rounded-2xl text-left border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group"><div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i data-lucide="users"></i></div><div><p class="font-bold text-slate-700">Junta Directiva</p><p class="text-xs text-slate-400">Roles y funciones</p></div></button></div></div></div></div>`;
+            c.innerHTML = `<div class="w-full h-full overflow-y-auto bg-slate-50 p-4 fade-in"><div class="max-w-4xl mx-auto space-y-6"><div class="flex justify-between items-end"><div><h2 class="text-2xl font-bold text-slate-800">Hola, ${currentUser.name.split(' ')[0]} 👋</h2><p class="text-slate-500 text-sm">Resumen financiero</p></div></div><div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden"><div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div><div class="relative z-10"><div class="flex justify-between items-start mb-8"><div><p class="text-indigo-200 text-xs font-bold uppercase mb-1">Cupo Disponible</p><h3 class="text-4xl md:text-5xl font-bold tracking-tight">${f(cupo)}</h3></div><div class="bg-white/20 p-3 rounded-2xl backdrop-blur-sm"><i data-lucide="wallet" class="text-white" width="24" height="24"></i></div></div><div class="space-y-2"><div class="flex justify-between text-xs text-indigo-100 font-medium"><span>Uso del crédito</span><span>${Math.round(uso)}%</span></div><div class="h-2 bg-black/20 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width: ${uso}%"></div></div></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center"><div class="flex items-center gap-2 mb-2 text-slate-400"><i data-lucide="piggy-bank" width="18"></i><span class="text-xs font-bold uppercase">Aportes</span></div><p class="text-3xl font-bold text-slate-800">${f(currentUser.aportes)}</p></div><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center"><div class="flex items-center gap-2 mb-2 text-slate-400"><i data-lucide="trending-down" width="18"></i><span class="text-xs font-bold uppercase">Deuda Actual</span></div><p class="text-3xl font-bold text-slate-800">${f(currentUser.deuda)}</p></div></div>${currentUser.multas > 0 ? `<div class="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start gap-4"><div class="bg-red-100 p-2 rounded-full text-red-600 shrink-0"><i data-lucide="alert-circle" width="20"></i></div><div><h4 class="font-bold text-red-800 text-sm">Multa Pendiente</h4><p class="text-xs text-red-600 mt-1">Sanción registrada: <strong>${f(currentUser.multas)}</strong>.</p></div></div>` : ''}<div><h3 class="text-sm font-bold text-slate-400 uppercase mb-3 tracking-wider">Accesos Rápidos</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><button onclick="navigateToCategory('Préstamos')" class="bg-white p-5 rounded-2xl text-left border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group"><div class="bg-green-50 text-green-600 p-3 rounded-xl"><i data-lucide="credit-card"></i></div><div><p class="font-bold text-slate-700">Reglamento de Créditos</p><p class="text-xs text-slate-400">Tasas y condiciones</p></div></button><button onclick="navigateToCategory('Gobierno')" class="bg-white p-5 rounded-2xl text-left border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group"><div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i data-lucide="users"></i></div><div><p class="font-bold text-slate-700">Junta Directiva</p><p class="text-xs text-slate-400">Roles y funciones</p></div></button></div></div></div></div>`;
         }
 
         function renderOracle(c) {
-            c.innerHTML = `<div class="h-full flex flex-col bg-white w-full"><div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%]">Hola ${currentUser.name.split(' ')[0]}. Pregúntame por tu saldo, deudas o sobre los estatutos.</div></div></div><div class="p-4 bg-white border-t border-slate-100 flex-shrink-0 w-full z-40"><form onsubmit="handleChat(event)" class="flex items-center gap-3 w-full"><input type="text" id="chat-input" placeholder="Ej: ¿Cuánto debo?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg"><i data-lucide="send" width="18"></i></button></form></div></div>`;
+            c.innerHTML = `<div class="h-full flex flex-col bg-white w-full"><div id="chat-history" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-slate-50"><div class="max-w-4xl mx-auto"><div class="flex gap-4 slide-up"><div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="20"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-600 max-w-[85%]">Hola ${currentUser.name.split(' ')[0]}. Pregúntame por tu saldo, deudas o sobre los estatutos.</div></div></div></div><div class="p-4 bg-white border-t border-slate-100 flex-shrink-0 w-full z-40"><form onsubmit="handleChat(event)" class="relative max-w-4xl mx-auto flex items-center gap-3"><input type="text" id="chat-input" placeholder="Ej: ¿Cuánto debo?" class="flex-1 bg-slate-100 border-0 rounded-full pl-6 pr-12 py-3 md:py-4 text-sm md:text-base focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"><button type="submit" class="p-3 md:p-4 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg"><i data-lucide="send" width="18"></i></button></form></div></div>`;
         }
 
         function renderNavigator(c) {
             const filtered = statutesDatabase.filter(s => s.category === activeCat);
             const cats = ['General', 'Ahorro', 'Ingreso', 'Retiro', 'Préstamos', 'Legal', 'Sanciones', 'Gobierno'];
             
-            // DISEÑO MÓVIL (Menú Horizontal Arriba) + DISEÑO ESCRITORIO (Sidebar Izquierda)
             c.innerHTML = `
             <div class="h-full flex flex-col md:flex-row bg-white fade-in w-full">
                 <div class="md:hidden w-full bg-white border-b border-slate-100 overflow-x-auto no-scrollbar flex items-center gap-2 p-3 sticky top-0 z-30">
@@ -220,7 +218,7 @@
                                 <i data-lucide="${getIconForCat(activeCat)}" class="text-indigo-600"></i> ${activeCat}
                             </h1>
                             <div class="space-y-4">
-                                ${filtered.length > 0 ? filtered.map(s => `<div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100"><h3 class="font-bold text-indigo-700 text-xs uppercase mb-2 flex items-center gap-2">${s.article} ${s.id.startsWith('rol')?'<span class="bg-purple-100 text-purple-700 px-2 rounded-full text-[10px]">Rol</span>':''}</h3><p class="text-slate-600 text-sm leading-relaxed">${s.content}</p></div>`).join('') : '<div class="text-center text-slate-400 py-10">Cargando estatutos...</div>'}
+                                ${filtered.length > 0 ? filtered.map(s => `<div class="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-100"><h3 class="font-bold text-indigo-700 text-sm uppercase mb-2 flex items-center gap-2">${s.article} ${s.id.startsWith('rol')?'<span class="bg-purple-100 text-purple-700 px-2 rounded-full text-[10px]">Rol</span>':''}</h3><p class="text-slate-600 text-sm md:text-base leading-relaxed">${s.content}</p></div>`).join('') : '<div class="text-center text-slate-400 py-10">Cargando estatutos...</div>'}
                             </div>
                         </div>
                     </div>
@@ -233,42 +231,45 @@
         function renderBottomNav() { 
             const nav = document.getElementById('bottom-nav'); 
             const items = [{ id: 'dashboard', icon: 'layout-grid', label: 'Inicio' }, { id: 'oracle', icon: 'message-square', label: 'Chat' }, { id: 'navigator', icon: 'book-open', label: 'Docs' }]; 
-            nav.innerHTML = items.map(i => `<button onclick="switchView('${i.id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 ${currentView === i.id ? 'text-indigo-600' : 'text-slate-400'}"><i data-lucide="${i.icon}" class="${currentView === i.id ? 'fill-indigo-100' : ''}" width="24"></i><span class="text-[10px] font-medium">${i.label}</span></button>`).join(''); 
+            // Max-width para que en PC los botones no queden en las esquinas extremas
+            nav.innerHTML = `<div class="w-full max-w-lg mx-auto flex justify-around items-center h-full">` + 
+                items.map(i => `<button onclick="switchView('${i.id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 ${currentView === i.id ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'} transition-colors"><i data-lucide="${i.icon}" class="${currentView === i.id ? 'fill-indigo-100' : ''}" width="24"></i><span class="text-[10px] md:text-xs font-medium">${i.label}</span></button>`).join('') + `</div>`; 
         }
 
         window.handleChat = async function(e) {
             e.preventDefault();
             const input = document.getElementById('chat-input');
-            const history = document.getElementById('chat-history');
+            const history = document.getElementById('chat-history').querySelector('.max-w-4xl');
+            const historyContainer = document.getElementById('chat-history');
             const q = input.value.trim();
             if(!q) return;
 
-            history.innerHTML += `<div class="flex gap-4 flex-row-reverse slide-up"><div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none text-sm shadow-md max-w-[85%]">${q}</div></div>`;
+            history.innerHTML += `<div class="flex gap-4 flex-row-reverse slide-up"><div class="bg-indigo-600 text-white p-3 md:p-4 rounded-2xl rounded-tr-none text-sm md:text-base shadow-md max-w-[85%]">${q}</div></div>`;
             input.value = '';
             
             const loadingId = 'loading-' + Date.now();
-            history.innerHTML += `<div id="${loadingId}" class="flex gap-4 slide-up"><div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0"><i data-lucide="sparkles" width="16"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border text-sm"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div>`;
-            history.scrollTop = history.scrollHeight;
+            history.innerHTML += `<div id="${loadingId}" class="flex gap-4 slide-up"><div class="w-8 h-8 md:w-10 md:h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0"><i data-lucide="sparkles" width="16"></i></div><div class="bg-white p-3 md:p-4 rounded-2xl rounded-tl-none shadow-sm border text-sm"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div>`;
+            historyContainer.scrollTop = historyContainer.scrollHeight;
             lucide.createIcons();
 
             const res = await generateAIResponse(q);
             document.getElementById(loadingId)?.remove();
 
             const citationBadges = res.citations.length > 0 
-                ? `<div class="flex gap-2 flex-wrap mt-2">${res.citations.map(c => `<span class="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 uppercase">${c}</span>`).join('')}</div>` 
+                ? `<div class="flex gap-2 flex-wrap mt-2">${res.citations.map(c => `<span class="text-[9px] md:text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 uppercase">${c}</span>`).join('')}</div>` 
                 : '';
 
             history.innerHTML += `
                 <div class="flex gap-4 slide-up">
-                    <div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="16"></i></div>
-                    <div class="space-y-2 max-w-[90%]">
-                        <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-700 chat-content leading-relaxed text-sm">
+                    <div class="w-8 h-8 md:w-10 md:h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i data-lucide="sparkles" width="16"></i></div>
+                    <div class="space-y-2 max-w-[90%] md:max-w-[80%]">
+                        <div class="bg-white p-4 md:p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-slate-700 chat-content leading-relaxed text-sm md:text-base">
                             ${formatText(res.text)}
                             ${citationBadges}
                         </div>
                     </div>
                 </div>`;
-            history.scrollTop = history.scrollHeight;
+            historyContainer.scrollTop = historyContainer.scrollHeight;
             lucide.createIcons();
         };
 
@@ -279,7 +280,6 @@
             let aiResponseText = "";
             let citations = [];
 
-            // 1. INTENTO CON IA (Si hay llave)
             if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10) {
                 try {
                     const statutesText = statutesDatabase.length > 0 
@@ -320,15 +320,12 @@
                     }
                 } catch (e) { 
                     console.warn("IA no disponible (" + e.message + "). Activando modo Offline.");
-                    // Dejamos que caiga al bloque de abajo (fallback)
                 }
             }
 
-            // 2. MODO OFFLINE (Si la IA falló o no respondió)
             if (!aiResponseText) {
                 const qClean = normalizeText(query);
                 
-                // A. RESPUESTAS FINANCIERAS DIRECTAS (Sin IA)
                 if (qClean.match(/(?:cupo|prestar|alcanza|prestan)/i)) {
                     const cupo = currentUser.aportes - currentUser.deuda;
                     aiResponseText = `💰 **Cupo Disponible (Modo Offline)**\n\nSegún tus aportes registrados, tienes un cupo de crédito de **${f(cupo)}**.\n\n| Concepto | Valor |\n|---|---|\n| Aportes Totales | ${f(currentUser.aportes)} |\n| (-) Deuda Actual | ${f(currentUser.deuda)} |\n| **= Cupo Libre** | **${f(cupo)}** |`;
@@ -355,13 +352,10 @@
                     aiResponseText = `📊 **Resumen Financiero**\n\n| Concepto | Valor |\n|---|---|\n| Aportes | ${f(currentUser.aportes)} |\n| Deuda | ${f(currentUser.deuda)} |\n| Multas | ${f(currentUser.multas)} |\n| **Cupo Libre** | **${f(cupo)}** |`;
                     citations = ['Base de Datos'];
                 }
-                
-                // B. BÚSQUEDA EN ESTATUTOS (Buscador de palabras clave)
                 else {
                     const results = searchStatutes(query);
                     if (results.length > 0) {
                         aiResponseText = `🔍 **Resultados en Estatutos (Modo Búsqueda)**\n\nNo pude conectar con la IA, pero encontré esto relacionado:\n\n`;
-                        // Mostrar los 2 mejores resultados
                         results.slice(0, 2).forEach(r => {
                             aiResponseText += `> **${r.article} (${r.title})**\n${r.content}\n\n`;
                             citations.push(r.article);
@@ -377,21 +371,14 @@
 
         function searchStatutes(query) {
             const q = normalizeText(query);
-            const terms = q.split(' ').filter(t => t.length > 3 || !isNaN(t)); // Ignorar palabras cortas
+            const terms = q.split(' ').filter(t => t.length > 3 || !isNaN(t)); 
             
             const results = statutesDatabase.map(i => {
                 let score = 0;
                 const text = normalizeText(i.title + ' ' + i.content + ' ' + i.article + ' ' + (i.keywords || ''));
-                
-                // Coincidencia exacta de frase
                 if (text.includes(q)) score += 50;
-
-                // Coincidencia de palabras clave
                 terms.forEach(t => { if (text.includes(t)) score += 10; });
-                
-                // Prioridad si busca un artículo específico (ej: "articulo 16")
                 if (q.includes(normalizeText(i.article))) score += 100;
-
                 return { item: i, score };
             });
             
