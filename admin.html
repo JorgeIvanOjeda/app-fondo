@@ -12,7 +12,7 @@
     <script>
         // 🔐 SEGURIDAD BÁSICA DEL PANEL
         const password = prompt("🔒 Área Restringida. Ingrese la contraseña de Administrador:");
-        if (password !== "admin123") { // <-- AQUÍ PUEDES CAMBIAR LA CONTRASEÑA
+        if (password !== "admin123") {
             alert("Contraseña incorrecta. Serás redirigido.");
             window.location.href = "index.html";
         }
@@ -32,9 +32,9 @@
 
         <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
             <h2 class="text-xl font-bold text-indigo-700 mb-2 flex items-center gap-2">
-                <i data-lucide="user-plus"></i> Gestión de Socios
+                <i data-lucide="users"></i> Gestión de Socios
             </h2>
-            <p class="text-sm text-slate-500 mb-6">Si la cédula ya existe, actualizará sus saldos. Si no existe, creará un socio nuevo.</p>
+            <p class="text-sm text-slate-500 mb-6">Crea, edita o elimina socios de la base de datos.</p>
             
             <form id="user-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 <div class="col-span-1 md:col-span-2 lg:col-span-1">
@@ -43,23 +43,26 @@
                 </div>
                 <div class="col-span-1 md:col-span-2 lg:col-span-2">
                     <label class="text-xs font-bold text-slate-400">Nombre Completo</label>
-                    <input type="text" id="u-name" placeholder="Ej: Pepito Perez" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                    <input type="text" id="u-name" placeholder="Ej: Pepito Perez" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div>
                     <label class="text-xs font-bold text-slate-400">Aportes ($)</label>
-                    <input type="number" id="u-aportes" placeholder="0" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                    <input type="number" id="u-aportes" placeholder="0" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div>
                     <label class="text-xs font-bold text-slate-400">Deuda ($)</label>
-                    <input type="number" id="u-deuda" placeholder="0" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                    <input type="number" id="u-deuda" placeholder="0" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div>
                     <label class="text-xs font-bold text-slate-400">Multas ($)</label>
-                    <input type="number" id="u-multas" placeholder="0" value="0" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                    <input type="number" id="u-multas" placeholder="0" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
-                <div class="md:col-span-2 lg:col-span-6 mt-2">
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors flex justify-center items-center gap-2">
-                        <i data-lucide="save"></i> Guardar / Actualizar Socio
+                <div class="md:col-span-2 lg:col-span-6 mt-2 flex flex-col sm:flex-row gap-3">
+                    <button type="submit" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition-colors flex justify-center items-center gap-2">
+                        <i data-lucide="save"></i> Guardar / Actualizar
+                    </button>
+                    <button type="button" onclick="eliminarSocio()" class="sm:w-1/4 bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors flex justify-center items-center gap-2">
+                        <i data-lucide="trash-2"></i> Eliminar
                     </button>
                 </div>
             </form>
@@ -69,7 +72,7 @@
             <h2 class="text-xl font-bold text-orange-600 mb-2 flex items-center gap-2">
                 <i data-lucide="book-open"></i> Editor de Estatutos
             </h2>
-            <p class="text-sm text-slate-500 mb-6">Busca un artículo por su ID para corregir textos o cambiar reglas.</p>
+            <p class="text-sm text-slate-500 mb-6">Busca un artículo por su ID para editarlo o eliminarlo permanentemente.</p>
             
             <div class="flex flex-col sm:flex-row gap-3 mb-6 bg-orange-50 p-4 rounded-lg border border-orange-100">
                 <input type="text" id="s-search" placeholder="ID del Artículo (ej: art1, art15, rol_teso)..." class="flex-1 border border-orange-200 p-2.5 rounded-lg outline-none text-slate-700 focus:ring-2 focus:ring-orange-500">
@@ -93,9 +96,14 @@
                     <label class="text-xs font-bold text-slate-400">Contenido del Artículo</label>
                     <textarea id="s-content" rows="6" class="w-full border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none leading-relaxed"></textarea>
                 </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-colors flex justify-center items-center gap-2">
-                    <i data-lucide="check-circle"></i> Guardar Cambios en la Nube
-                </button>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="submit" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-colors flex justify-center items-center gap-2">
+                        <i data-lucide="check-circle"></i> Guardar Cambios
+                    </button>
+                    <button type="button" onclick="eliminarEstatuto()" class="sm:w-1/4 bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors flex justify-center items-center gap-2">
+                        <i data-lucide="trash-2"></i> Eliminar
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -116,12 +124,13 @@
         lucide.createIcons();
 
         // ------------------------------------------
-        // LÓGICA DE SOCIOS (CREAR/ACTUALIZAR)
+        // LÓGICA DE SOCIOS
         // ------------------------------------------
+        
+        // GUARDAR / ACTUALIZAR
         document.getElementById('user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const btn = e.target.querySelector('button');
+            const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Guardando...';
@@ -131,13 +140,12 @@
             const data = {
                 id: id,
                 name: document.getElementById('u-name').value.trim(),
-                aportes: Number(document.getElementById('u-aportes').value),
-                deuda: Number(document.getElementById('u-deuda').value),
-                multas: Number(document.getElementById('u-multas').value)
+                aportes: Number(document.getElementById('u-aportes').value || 0),
+                deuda: Number(document.getElementById('u-deuda').value || 0),
+                multas: Number(document.getElementById('u-multas').value || 0)
             };
 
             try {
-                // merge: true permite actualizar sin borrar campos que no tocamos
                 await db.collection('socios').doc(id).set(data, { merge: true });
                 alert('✅ ¡Socio guardado/actualizado correctamente!');
                 document.getElementById('user-form').reset();
@@ -150,9 +158,32 @@
             }
         });
 
+        // ELIMINAR SOCIO
+        async function eliminarSocio() {
+            const id = document.getElementById('u-id').value.trim();
+            if (!id) {
+                return alert("⚠️ Por favor, escribe la Cédula (ID) del socio que deseas eliminar en el primer recuadro.");
+            }
+            
+            // Ventana de confirmación de seguridad
+            const confirmacion = confirm(`⚠️ ADVERTENCIA ⚠️\n\n¿Estás completamente seguro de que deseas ELIMINAR al socio con cédula ${id}?\n\nEsta acción no se puede deshacer y borrará todo su historial de la base de datos.`);
+            
+            if (confirmacion) {
+                try {
+                    await db.collection('socios').doc(id).delete();
+                    alert(`✅ El socio con cédula ${id} ha sido eliminado de la base de datos.`);
+                    document.getElementById('user-form').reset();
+                } catch (error) {
+                    alert('❌ Error al eliminar: ' + error.message);
+                }
+            }
+        }
+
         // ------------------------------------------
-        // LÓGICA DE ESTATUTOS (LEER Y ACTUALIZAR)
+        // LÓGICA DE ESTATUTOS
         // ------------------------------------------
+        
+        // BUSCAR
         async function buscarEstatuto() {
             const id = document.getElementById('s-search').value.trim();
             if(!id) return alert("Por favor escribe el ID de un artículo (ej: art1, art15)");
@@ -166,7 +197,7 @@
                     document.getElementById('s-article').value = data.article || '';
                     document.getElementById('s-content').value = data.content || '';
                 } else {
-                    alert(`⚠️ No encontré ningún artículo con el ID: ${id}\nPrueba con formato: art1, art2, art15... o rol_teso`);
+                    alert(`⚠️ No encontré ningún artículo con el ID: ${id}`);
                     document.getElementById('statute-form').classList.add('hidden');
                 }
             } catch (error) {
@@ -174,9 +205,10 @@
             }
         }
 
+        // ACTUALIZAR
         document.getElementById('statute-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
+            const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Actualizando...';
@@ -190,7 +222,7 @@
 
             try {
                 await db.collection('estatutos').doc(id).update(data);
-                alert('✅ Artículo actualizado. Los cambios ya están en vivo en la App.');
+                alert('✅ Artículo actualizado en la Nube.');
                 document.getElementById('statute-form').classList.add('hidden');
                 document.getElementById('s-search').value = '';
             } catch (error) {
@@ -201,6 +233,24 @@
                 lucide.createIcons();
             }
         });
+
+        // ELIMINAR ESTATUTO
+        async function eliminarEstatuto() {
+            const id = document.getElementById('s-id').value;
+            
+            const confirmacion = confirm(`⚠️ ADVERTENCIA ⚠️\n\n¿Estás seguro de que deseas ELIMINAR el artículo con ID "${id}"?\n\nDesaparecerá de la aplicación para todos los usuarios.`);
+            
+            if (confirmacion) {
+                try {
+                    await db.collection('estatutos').doc(id).delete();
+                    alert(`✅ El artículo ${id} ha sido eliminado.`);
+                    document.getElementById('statute-form').classList.add('hidden');
+                    document.getElementById('s-search').value = '';
+                } catch (error) {
+                    alert('❌ Error al eliminar: ' + error.message);
+                }
+            }
+        }
     </script>
 </body>
 </html>
